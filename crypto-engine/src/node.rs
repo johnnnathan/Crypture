@@ -1,8 +1,7 @@
-use bit_vec::BitVec;
 use serde::{Serialize, Deserialize};
-use rand::Rng;
+use rand::{Rng, random};
 use std::collections::HashSet;
-
+use wasm_bindgen::prelude::*;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub enum OpType {
@@ -17,7 +16,7 @@ pub fn get_spec(&self, base_width: u16) -> (Vec<u16>, Vec<u16>) {
             OpType::Xor => (vec![base_width, base_width], vec![base_width]),
             OpType::SBox(_) => (vec![8], vec![8]),
             OpType::Caesar => (vec![base_width, 8], vec![base_width]),
-            OpType::Vigenere => (vec![base_width, 8], vec![base_width]),
+            OpType::Vigenere => (vec![base_width, base_width, 16], vec![base_width]),
         }
     }
 }
@@ -25,7 +24,7 @@ pub fn get_spec(&self, base_width: u16) -> (Vec<u16>, Vec<u16>) {
 pub struct Port {
     pub id: u32,
     pub width: u16,
-    pub data: BitVec,
+    pub data: Vec<u8>,
 }
 
 impl Port {
@@ -34,31 +33,39 @@ impl Port {
         Self {
             id,
             width,
-            data: BitVec::from_elem(width as usize, false),
+            data: vec![0u8; (width as usize + 7) / 8],
         }
     }
 
     // Getters
-    pub fn get_data(&self) -> &BitVec { &self.data }
+    pub fn get_data(&self) -> &Vec<u8> { &self.data }
     pub fn get_width(&self) -> u16 { self.width }
 
     // Setters
-    pub fn set_data(&mut self, new_data: BitVec) {
-        if new_data.len() == self.width as usize {
+    pub fn set_data(&mut self, new_data: Vec<u8>) {
+        let expected_bytes = (self.width as usize + 7) / 8;
+        if new_data.len() == expected_bytes {
             self.data = new_data;
+        } else {
+            // Optional: Panic or Log here to catch mismatches during testing
+            eprintln!("Width mismatch: expected {} bytes, got {}", expected_bytes, new_data.len());
         }
     }
 
-    /// Generates random bits for this port based on its width
     pub fn fill_random(&mut self) {
         let mut rng = rand::thread_rng();
-        let bytes_needed = (self.width as f32 / 8.0).ceil() as usize;
+        let bytes_needed = (self.width as usize + 7) / 8;
         let mut random_bytes = vec![0u8; bytes_needed];
         rng.fill(&mut random_bytes[..]);
         
-        let mut new_bv = BitVec::from_bytes(&random_bytes);
-        new_bv.truncate(self.width as usize);
-        self.data = new_bv;
+        // Mask the last byte if the bit width isn't a multiple of 8
+        if self.width % 8 != 0 {
+            if let Some(last) = random_bytes.last_mut() {
+                let mask = (1 << (self.width % 8)) - 1;
+                *last &= mask;
+            }
+        }
+        self.data = random_bytes;
     }
 }
 
@@ -111,6 +118,8 @@ pub struct Circuit {
 
 impl Circuit {
 
+
+    
     pub fn new(name: String) -> Self{
         Self {
             name,
@@ -172,7 +181,7 @@ impl Circuit {
         
     }
 
-    pub fn get_port_data(&self, id: u32) -> Option<BitVec> {
+    pub fn get_port_data(&self, id: u32) -> Option<Vec<u8>> {
         self.ports.iter().find(|p| p.id == id).map(|p| p.data.clone())
     }
 
@@ -188,30 +197,28 @@ impl Circuit {
         (node.get_optype().clone(), node.get_input_ports().clone(), node.get_output_ports().clone())
     }
 
-    fn op_xor(&mut self, inputs: &[u32], outputs: &[u32]){
+    fn op_xor(&mut self, inputs: &[u32], outputs: &[u32]) {
         let val0 = self.get_port_data(inputs[0]);
         let val1 = self.get_port_data(inputs[1]);
 
-        if let (Some(v0), Some(v1)) = (val0, val1){
-            let mut result = v0;
-            result.xor(&v1);
+        if let (Some(mut v0), Some(v1)) = (val0, val1) {
+            v0.iter_mut().zip(v1.iter()).for_each(|(a, b)| *a ^= b);
             if let Some(out_port) = self.get_port_mut(outputs[0]) {
-                out_port.set_data(result);
+                out_port.set_data(v0);
             }
         }
     }
     fn op_sbox(&mut self, inputs: &[u32], outputs: &[u32], table: &[u8]) {
         // 1. Get the input data
         if let Some(in_data) = self.get_port_data(inputs[0]) {
-            // 2. Convert BitVec to index (usize)
             // Note: For an 8-bit S-Box, we look at the first byte
-            let bytes = in_data.to_bytes();
+            let bytes = in_data.clone();
             if let Some(&input_val) = bytes.get(0) {
                 let index = input_val as usize;
 
                 // 3. Lookup the value in the table
                 if let Some(&output_val) = table.get(index) {
-                    let result = BitVec::from_bytes(&[output_val]);
+                    let result = vec![output_val];
                     
                     // 4. Set the output port
                     if let Some(out_port) = self.get_port_mut(outputs[0]) {
@@ -228,13 +235,13 @@ impl Circuit {
 
         if let (Some(v_d), Some(v_s)) = (val_data, val_shift) {
             // 1. Get the byte to be shifted
-            let data_byte = v_d.to_bytes()[0];
+            let data_byte = v_d.clone()[0];
             // 2. Get the shift amount (the key)
-            let shift_byte = v_s.to_bytes()[0];
+            let shift_byte = v_s.clone()[0];
 
             // 3. Perform the wrapping add (Caesar math)
             let result_byte = data_byte.wrapping_add(shift_byte);
-            let result = BitVec::from_bytes(&[result_byte]);
+            let result = vec![result_byte];
 
             // 4. Set the output
             if let Some(out_port) = self.get_port_mut(outputs[0]) {
@@ -245,29 +252,28 @@ impl Circuit {
     fn op_vigenere(&mut self, inputs: &[u32], outputs: &[u32]) {
         let val_data = self.get_port_data(inputs[0]);
         let val_key = self.get_port_data(inputs[1]);
+        let val_len = self.get_port_data(inputs[2]); // The "Hidden" Length Port
 
-        if let (Some(v_d), Some(v_k)) = (val_data, val_key) {
-            let data_bytes = v_d.to_bytes();
-            let key_bytes = v_k.to_bytes();
-            
-            // Safety: If the key is empty, we can't divide by zero.
-            if key_bytes.is_empty() { return; }
+        if let (Some(v_d), Some(v_k), Some(v_l)) = (val_data, val_key, val_len) {
+            // Convert the 2 bytes from the 16-bit port into a u16 length
+            let effective_len = if v_l.len() >= 2 {
+                u16::from_le_bytes([v_l[0], v_l[1]]) as usize
+            } else {
+                v_k.len() // Fallback to full width
+            };
 
-            let result_bytes: Vec<u8> = data_bytes
-                .iter()
-                .enumerate()
+            // Ensure we don't divide by zero and stay within bounds
+            let safe_len = effective_len.clamp(1, v_k.len());
+
+            let result_bytes: Vec<u8> = v_d.iter().enumerate()
                 .map(|(i, &byte)| {
-                    // This is the "Repeating" magic:
-                    // i = 0 -> key[0]
-                    // i = 1 -> key[1]
-                    // i = 2 -> key[0] (if key len is 2)
-                    let shift = key_bytes[i % key_bytes.len()];
+                    let shift = v_k[i % safe_len]; // Cycle only through the real key
                     byte.wrapping_add(shift)
                 })
                 .collect();
 
             if let Some(out_port) = self.get_port_mut(outputs[0]) {
-                out_port.set_data(BitVec::from_bytes(&result_bytes));
+                out_port.set_data(result_bytes);
             }
         }
     }
@@ -336,14 +342,14 @@ impl Circuit {
         }
     }
 
-    pub fn pull_data(&mut self, port_id: u32) -> BitVec {
+    pub fn pull_data(&mut self, port_id: u32) -> Vec<u8> {
         let mut visited = HashSet::new();
         self.pull_recursive(port_id, &mut visited)
     }
 
-    fn pull_recursive(&mut self, port_id: u32, visited: &mut HashSet<u32>) -> BitVec {
+    fn pull_recursive(&mut self, port_id: u32, visited: &mut HashSet<u32>) -> Vec<u8> {
         if !visited.insert(port_id) {
-            return self.get_port_data(port_id).unwrap_or_else(|| BitVec::from_elem(8, false));
+            return self.get_port_data(port_id).unwrap_or_else(|| vec![0u8; (8 as usize + 7) / 8]);
         }
 
         // 1. If this is an input port, pull from source AND write to this port
@@ -362,7 +368,7 @@ impl Circuit {
             self.run_node_demand_driven(node_idx, visited);
         }
 
-        self.get_port_data(port_id).unwrap_or_else(|| BitVec::from_elem(8, false))
+        self.get_port_data(port_id).unwrap_or_else(|| vec![0u8; (8 as usize + 7) / 8])
     }
 
     fn run_node_demand_driven(&mut self, node_idx: usize, visited: &mut HashSet<u32>) {
@@ -408,4 +414,50 @@ impl Circuit {
         }
     }
 
+}
+
+
+#[wasm_bindgen]
+pub struct CircuitWasm {
+    inner: Circuit,
+}
+
+#[wasm_bindgen]
+impl CircuitWasm {
+    #[wasm_bindgen(constructor)]
+    pub fn new(name: String) -> Self {
+        Self {
+            inner: Circuit::new(name),
+        }
+    }
+
+    // React calls this: c.add_node("XorNode", { type: "Xor" }, 128)
+    pub fn add_node(&mut self, name: String, op_js: JsValue, width: u16) {
+        let op: OpType = serde_wasm_bindgen::from_value(op_js)
+            .expect("Invalid OpType format");
+        self.inner.add_node(name, op, width);
+    }
+
+    pub fn add_connection(&mut self, from_id: u32, to_id: u32) {
+        self.inner.add_connection(from_id, to_id);
+    }
+
+    // Return Vec<u8> (Uint8Array in JS)
+    pub fn pull_data(&mut self, port_id: u32) -> Vec<u8> {
+        self.inner.pull_data(port_id)
+    }
+
+    pub fn set_port_data(&mut self, port_id: u32, data: Vec<u8>) {
+        if let Some(port) = self.inner.get_port_mut(port_id) {
+            port.set_data(data);
+        }
+    }
+
+    pub fn iterate(&mut self) {
+        self.inner.iterate();
+    }
+
+    pub fn to_json(&self) -> String {
+        self.inner.to_json()
+    }
 }
