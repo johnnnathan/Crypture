@@ -47,7 +47,6 @@ impl Port {
         if new_data.len() == expected_bytes {
             self.data = new_data;
         } else {
-            // Optional: Panic or Log here to catch mismatches during testing
             eprintln!("Width mismatch: expected {} bytes, got {}", expected_bytes, new_data.len());
         }
     }
@@ -58,7 +57,6 @@ impl Port {
         let mut random_bytes = vec![0u8; bytes_needed];
         rng.fill(&mut random_bytes[..]);
         
-        // Mask the last byte if the bit width isn't a multiple of 8
         if self.width % 8 != 0 {
             if let Some(last) = random_bytes.last_mut() {
                 let mask = (1 << (self.width % 8)) - 1;
@@ -209,18 +207,14 @@ impl Circuit {
         }
     }
     fn op_sbox(&mut self, inputs: &[u32], outputs: &[u32], table: &[u8]) {
-        // 1. Get the input data
         if let Some(in_data) = self.get_port_data(inputs[0]) {
-            // Note: For an 8-bit S-Box, we look at the first byte
             let bytes = in_data.clone();
             if let Some(&input_val) = bytes.get(0) {
                 let index = input_val as usize;
 
-                // 3. Lookup the value in the table
                 if let Some(&output_val) = table.get(index) {
                     let result = vec![output_val];
                     
-                    // 4. Set the output port
                     if let Some(out_port) = self.get_port_mut(outputs[0]) {
                         out_port.set_data(result);
                     }
@@ -234,16 +228,12 @@ impl Circuit {
         let val_shift = self.get_port_data(inputs[1]);
 
         if let (Some(v_d), Some(v_s)) = (val_data, val_shift) {
-            // 1. Get the byte to be shifted
             let data_byte = v_d.clone()[0];
-            // 2. Get the shift amount (the key)
             let shift_byte = v_s.clone()[0];
 
-            // 3. Perform the wrapping add (Caesar math)
             let result_byte = data_byte.wrapping_add(shift_byte);
             let result = vec![result_byte];
 
-            // 4. Set the output
             if let Some(out_port) = self.get_port_mut(outputs[0]) {
                 out_port.set_data(result);
             }
@@ -252,7 +242,7 @@ impl Circuit {
     fn op_vigenere(&mut self, inputs: &[u32], outputs: &[u32]) {
         let val_data = self.get_port_data(inputs[0]);
         let val_key = self.get_port_data(inputs[1]);
-        let val_len = self.get_port_data(inputs[2]); // The "Hidden" Length Port
+        let val_len = self.get_port_data(inputs[2]); 
 
         if let (Some(v_d), Some(v_k), Some(v_l)) = (val_data, val_key, val_len) {
             // Convert the 2 bytes from the 16-bit port into a u16 length
@@ -262,12 +252,12 @@ impl Circuit {
                 v_k.len() // Fallback to full width
             };
 
-            // Ensure we don't divide by zero and stay within bounds
+            // Divide by zero check 
             let safe_len = effective_len.clamp(1, v_k.len());
 
             let result_bytes: Vec<u8> = v_d.iter().enumerate()
                 .map(|(i, &byte)| {
-                    let shift = v_k[i % safe_len]; // Cycle only through the real key
+                    let shift = v_k[i % safe_len]; 
                     byte.wrapping_add(shift)
                 })
                 .collect();
@@ -313,7 +303,7 @@ impl Circuit {
         // Remove the port itself
         self.ports.retain(|p| p.id != port_id);
         
-        // Remove any connections using this port
+        // Remove connections using this port
         self.connections.retain(|(from, to)| *from != port_id && *to != port_id);
         
         // Update nodes to remove the reference to this port ID
@@ -324,20 +314,16 @@ impl Circuit {
     }
 
     pub fn remove_node(&mut self, node_id: u32) {
-        // 1. Find the node to get its port IDs
         if let Some(pos) = self.nodes.iter().position(|n| n.id == node_id) {
             let node = self.nodes.remove(pos);
             
-            // 2. Collect all port IDs associated with this node
             let mut ports_to_remove = node.inputs;
             ports_to_remove.extend(node.outputs);
 
-            // 3. Remove all connections tied to these ports
             self.connections.retain(|(from, to)| {
                 !ports_to_remove.contains(from) && !ports_to_remove.contains(to)
             });
 
-            // 4. Remove the ports from the circuit
             self.ports.retain(|p| !ports_to_remove.contains(&p.id));
         }
     }
@@ -352,18 +338,15 @@ impl Circuit {
             return self.get_port_data(port_id).unwrap_or_else(|| vec![0u8; (8 as usize + 7) / 8]);
         }
 
-        // 1. If this is an input port, pull from source AND write to this port
         if let Some(source_id) = self.find_connection_source(port_id) {
             let source_data = self.pull_recursive(source_id, visited);
             
-            // We must sync the data across the 'wire' before returning
             if let Some(this_port) = self.get_port_mut(port_id) {
                 this_port.set_data(source_data.clone());
             }
             return source_data;
         }
 
-        // 2. If this is an output port, trigger the node to update it
         if let Some(node_idx) = self.find_node_idx_by_output(port_id) {
             self.run_node_demand_driven(node_idx, visited);
         }
@@ -375,12 +358,11 @@ impl Circuit {
         // Get the IDs for the inputs of this node
         let input_ids = self.nodes[node_idx].inputs.clone();
         
-        // RECURSION: Pull data for every input of this node before executing the node logic
         for in_id in input_ids {
             self.pull_recursive(in_id, visited);
         }
 
-        // Now that inputs are refreshed, execute the node's math
+        // Execute node
         self.run_node(node_idx);
     }
 
@@ -398,7 +380,6 @@ impl Circuit {
 
     pub fn iterate(&mut self) {
         // Find all ports that are outputs of nodes
-        // We clone the IDs to avoid borrow checker issues while mutating self in the loop
         let output_port_ids: Vec<u32> = self.nodes
             .iter()
             .flat_map(|n| n.outputs.clone())
@@ -431,7 +412,6 @@ impl CircuitWasm {
         }
     }
 
-    // React calls this: c.add_node("XorNode", { type: "Xor" }, 128)
     pub fn add_node(&mut self, name: String, op_js: JsValue, width: u16) {
         let op: OpType = serde_wasm_bindgen::from_value(op_js)
             .expect("Invalid OpType format");
