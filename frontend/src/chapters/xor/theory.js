@@ -1,39 +1,9 @@
-// chapters/xor/theory.js
 import { bin, hex, ascii, parseBinaryByte } from '../exercise-kit.js';
 
-const style = document.createElement('style');
-style.textContent = `
-
-/* ── Live XOR widget ─────────────────────────────── */
-.ex-live-grid {
-  display: flex; gap: 24px; align-items: flex-start;
-  background: var(--bg-raised); border: 1px solid var(--border-mid);
-  border-radius: 4px; padding: 16px; margin-top: 12px;
-}
-.ex-live-inputs { display: flex; flex-direction: column; }
-.ex-live-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
-.result-row { border-top: 1px solid var(--border-mid); margin-top: 4px; padding-top: 10px; }
-.ex-live-label { font-family: var(--font-display); font-size: 11px; font-weight: 600; color: var(--text-dim); width: 14px; }
-.ex-live-op { font-size: 20px; color: var(--text-dim); padding: 4px 0 4px 24px; }
-.ex-live-sep { height: 1px; background: var(--border-dim); margin: 4px 0; }
-.ex-live-bin { font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); letter-spacing: 1px; }
-.ex-live-result-hex { font-family: var(--font-display); font-size: 16px; color: var(--accent); font-weight: 600; min-width: 60px; }
-.ex-bits-panel { flex: 1; }
-.ex-bits-label { font-size: 9px; color: var(--text-dim); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
-.ex-bits-display { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px; }
-.xor-bit {
-  width: 28px; height: 28px; border-radius: 3px;
-  display: flex; align-items: center; justify-content: center;
-  font-family: var(--font-display); font-size: 13px; font-weight: 700;
-  border: 1px solid var(--border-mid);
-}
-.xor-bit.bit-1 { background: var(--accent-glow); border-color: var(--accent); color: var(--accent); }
-.xor-bit.bit-0 { background: var(--bg-base); color: var(--text-dim); }
-.ex-bits-meta { font-size: 10px; color: var(--text-dim); }
-`
+document.head.appendChild(style);
 
 export const xorTheory = {
-  id: 'xor',
+  id: 'xor-theory',
   num: '01',
   tag: 'XOR Gate',
   tagClass: 'xor',
@@ -44,85 +14,6 @@ export const xorTheory = {
 
   blocks: [
     {
-      kind: 'text',
-      heading: 'h2',
-      title: 'The XOR Operation',
-      html: `
-        <p class="ex-p">XOR (exclusive-or, written <strong>⊕</strong>) operates on individual bits. The output is <strong>1</strong> when the two input bits differ, and <strong>0</strong> when they match. Applied to bytes, it works column by column across all 8 bit positions simultaneously.</p>
-        <p class="ex-p">Two properties make XOR central to cryptography:</p>
-        <ul class="ex-list">
-          <li><strong>Self-inverse:</strong> <code>A ⊕ B ⊕ B = A</code>. Applying XOR with the same value twice restores the original — so the same operation encrypts and decrypts.</li>
-          <li><strong>Commutativity and associativity:</strong> <code>A ⊕ B = B ⊕ A</code>, and grouping doesn't matter. This lets us rearrange equations to recover unknowns.</li>
-        </ul>`,
-    },
-    {
-      kind: 'formula',
-      lines: ['Encrypt:  C = P ⊕ K', 'Decrypt:  P = C ⊕ K'],
-      note: 'If C = P ⊕ K, then C ⊕ K = P ⊕ K ⊕ K = P ⊕ 0 = P.',
-    },
-    {
-      kind: 'text',
-      heading: 'h3',
-      title: 'Bit Interaction Table',
-      html: `<p class="ex-p">How every combination of two input bits produces an output. The defining rule: output is 1 only when inputs differ.</p>`,
-    },
-    {
-      kind: 'tablesRow',
-      tables: [
-        {
-          label: 'XOR Truth Table',
-          columns: ['A', 'B', 'A ⊕ B'],
-          rows: [
-            ['0', '0', '<span class="bit-0">0</span>'],
-            ['0', '1', '<span class="bit-1">1</span>'],
-            ['1', '0', '<span class="bit-1">1</span>'],
-            ['1', '1', '<span class="bit-0">0</span>'],
-          ],
-        },
-        {
-          label: 'XOR vs AND vs OR',
-          columns: ['A', 'B', 'A AND B', 'A OR B', 'A XOR B'],
-          rows: [
-            ['0', '0', '0', '0', '<span class="bit-0">0</span>'],
-            ['0', '1', '0', '1', '<span class="bit-1">1</span>'],
-            ['1', '0', '0', '1', '<span class="bit-1">1</span>'],
-            ['1', '1', '1', '1', '<span class="bit-0">0</span>'],
-          ],
-        },
-      ],
-    },
-    {
-      kind: 'custom',
-      html: `
-        <div class="ex-examples-grid">
-          <div class="ex-example">
-            <div class="ex-example-label">Example 1 — 11111111 ⊕ 00001111</div>
-            <div class="ex-bitrow"><span class="ex-bit-label">A</span><span class="xor-bits">1 1 1 1 1 1 1 1</span></div>
-            <div class="ex-bitrow"><span class="ex-bit-label">B</span><span class="xor-bits">0 0 0 0 1 1 1 1</span></div>
-            <div class="ex-bitrow-sep">⊕</div>
-            <div class="ex-bitrow result"><span class="ex-bit-label">R</span><span class="xor-bits">1 1 1 1 0 0 0 0</span></div>
-            <div class="ex-example-note">XOR with 00001111 flips the low nibble, preserves the high nibble.</div>
-          </div>
-          <div class="ex-example">
-            <div class="ex-example-label">Example 2 — 10101011 ⊕ 10101011</div>
-            <div class="ex-bitrow"><span class="ex-bit-label">A</span><span class="xor-bits">1 0 1 0 1 0 1 1</span></div>
-            <div class="ex-bitrow"><span class="ex-bit-label">B</span><span class="xor-bits">1 0 1 0 1 0 1 1</span></div>
-            <div class="ex-bitrow-sep">⊕</div>
-            <div class="ex-bitrow result"><span class="ex-bit-label">R</span><span class="xor-bits">0 0 0 0 0 0 0 0</span></div>
-            <div class="ex-example-note">A value XOR'd with itself is always 0. This is the self-inverse property.</div>
-          </div>
-          <div class="ex-example">
-            <div class="ex-example-label">Example 3 — 01001000 ⊕ 00000000</div>
-            <div class="ex-bitrow"><span class="ex-bit-label">A</span><span class="xor-bits">0 1 0 0 1 0 0 0</span></div>
-            <div class="ex-bitrow"><span class="ex-bit-label">B</span><span class="xor-bits">0 0 0 0 0 0 0 0</span></div>
-            <div class="ex-bitrow-sep">⊕</div>
-            <div class="ex-bitrow result"><span class="ex-bit-label">R</span><span class="xor-bits">0 1 0 0 1 0 0 0</span></div>
-            <div class="ex-example-note">XOR with 0 is the identity — output equals input. A zero key provides no encryption.</div>
-          </div>
-        </div>`,
-    },
-    // ── Interactive demo (simulate the cipher) ──────────────────────────
-    {
       kind: 'custom',
       title: 'Interactive XOR',
       desc: 'Enter two 8-bit binary values to see the XOR computed bit by bit.',
@@ -132,19 +23,19 @@ export const xorTheory = {
             <div class="ex-live-row">
               <span class="ex-live-label">A</span>
               <input id="xor-live-a" class="ex-hex-input" type="text" value="10101010" maxlength="8" />
-              <span class="ex-live-bin" id="xor-live-a-bin">—</span>
+              <span class="ex-live-bin" id="xor-live-a-hex">0xAA</span>
             </div>
             <div class="ex-live-op">⊕</div>
             <div class="ex-live-row">
               <span class="ex-live-label">B</span>
               <input id="xor-live-b" class="ex-hex-input" type="text" value="01010101" maxlength="8" />
-              <span class="ex-live-bin" id="xor-live-b-bin">—</span>
+              <span class="ex-live-bin" id="xor-live-b-hex">0x55</span>
             </div>
             <div class="ex-live-sep"></div>
             <div class="ex-live-row result-row">
               <span class="ex-live-label">R</span>
-              <span class="ex-live-result-hex"><span id="xor-live-r-hex">—</span></span>
-              <span class="ex-live-bin" id="xor-live-r-bin">—</span>
+              <span class="ex-live-result-hex" id="xor-live-r-hex">0xFF</span>
+              <span class="ex-live-bin" id="xor-live-r-bin">11111111</span>
             </div>
           </div>
           <div class="ex-live-bits-panel">
@@ -163,10 +54,11 @@ export const xorTheory = {
           if (a === null || b === null) return;
           const result = a ^ b;
 
-          container.querySelector('#xor-live-a-bin').textContent = bin(a);
-          container.querySelector('#xor-live-b-bin').textContent = bin(b);
+          // Update secondary formatting
+          container.querySelector('#xor-live-a-hex').textContent = hex(a);
+          container.querySelector('#xor-live-b-hex').textContent = hex(b);
+          container.querySelector('#xor-live-r-hex').textContent = hex(result);
           container.querySelector('#xor-live-r-bin').textContent = bin(result);
-          container.querySelector('#xor-live-r-hex').textContent = bin(result);
           container.querySelector('#xor-live-r-dec').textContent = result;
 
           let bitsHtml = '';
@@ -181,69 +73,7 @@ export const xorTheory = {
         update();
       },
     },
-    // ── Exercises ────────────────────────────────────────────────────────
-    {
-      kind: 'exerciseGroup',
-      title: 'Exercises',
-      items: [
-        (() => {
-          const A = 0b01001101, B = 0b01110001, ANS = A ^ B;
-          return {
-            num: '1.1',
-            title: 'Byte XOR Computation',
-            bodyHtml: `<p class="ex-p">Compute the XOR of the following two bytes by hand, then verify.<br>
-              <strong>A = 01001101</strong> &nbsp; <strong>B = 01110001</strong></p>`,
-            hint: 'Work bit by bit. Write your answer in 8-bit binary.',
-            input: { type: 'binary', maxlength: 8 },
-            inputLabel: 'A ⊕ B =',
-            check: (val) => val === ANS
-              ? { correct: true, message: `${hex(A)} ⊕ ${hex(B)} = ${hex(ANS)}.\n  ${bin(A)}  \n⊕ ${bin(B)}  \n= ${bin(ANS)}\nEach output bit is 1 where the input bits differ, 0 where they match.` }
-              : { correct: false, message: `Got ${hex(val)}, expected ${hex(ANS)}. Work column by column: ${bin(A)} XOR ${bin(B)}.` },
-          };
-        })(),
-        (() => {
-          const P = 0x52, C = 0xBE, K = P ^ C;
-          return {
-            num: '1.2',
-            title: 'Known-Plaintext Key Recovery',
-            bodyHtml: `
-              <p class="ex-p">An analyst captures a single plaintext/ciphertext pair from a system using XOR with a static key:</p>
-              <div class="ex-data-block">
-                <div class="ex-data-row"><span>Plaintext P</span><span class="accent">01010010</span></div>
-                <div class="ex-data-row"><span>Ciphertext C</span><span class="accent">10111110</span></div>
-              </div>
-              <p class="ex-p">Using the self-inverse property <code>K = P ⊕ C</code>, recover the key K. With K known, every message ever sent with this system is decryptable.</p>`,
-            input: { type: 'binary', maxlength: 8 },
-            inputLabel: 'K =',
-            check: (val) => val === K
-              ? { correct: true, message: `K = P ⊕ C = ${bin(P)} ⊕ ${bin(C)} = ${bin(K)}.\nThis works because XOR is self-inverse: if C = P ⊕ K, then P ⊕ C = P ⊕ (P ⊕ K) = K.\nThis is called a "known-plaintext attack" — observing even one plaintext/ciphertext pair leaks the key entirely when XOR is used with a static key.` }
-              : { correct: false, message: `Got ${bin(val)}. K = P ⊕ C = ${bin(P)} ⊕ ${bin(C)}. XOR both values together: ${bin(P)} XOR ${bin(C)}.` },
-          };
-        })(),
-        (() => {
-          const K = 0x3F, P1 = 0x48, P2 = 0x7E;
-          const C1 = P1 ^ K, C2 = P2 ^ K, XORR = C1 ^ C2;
-          return {
-            num: '1.3',
-            title: 'Key-Reuse Attack (Crib Dragging)',
-            bodyHtml: `
-              <p class="ex-p">Two plaintexts were encrypted with the <strong>same key K</strong> (a serious mistake). The key is unknown. The analyst has only:</p>`,
-            dataRows: [
-              { label: 'C₁', id: 'c1', value: bin(C1) },
-              { label: 'C₂', id: 'c2', value: bin(C2) },
-              { label: 'P₁ (known)', value: '01001000' },
-            ],
-            hint: 'Because C₁ ⊕ C₂ = (P₁ ⊕ K) ⊕ (P₂ ⊕ K) = P₁ ⊕ P₂, the key cancels out. Use this to find P₂.',
-            input: { type: 'binary', maxlength: 8 },
-            inputLabel: 'P₂ =',
-            check: (val) => val === P2
-              ? { correct: true, message: `P₂ = ${bin(P2)} ('${ascii(P2)}').\nStep 1: C₁ ⊕ C₂ = ${bin(C1)} ⊕ ${bin(C2)} = ${bin(XORR)} = P₁ ⊕ P₂ (key cancels).\nStep 2: P₁ ⊕ (P₁ ⊕ P₂) = P₂ → ${bin(P1)} ⊕ ${bin(XORR)} = ${bin(P2)}.\nThis is why reusing a one-time pad key is catastrophic — the key vanishes and plaintexts directly reveal each other.` }
-              : { correct: false, message: `Got ${hex(val)}. Step 1: C₁ ⊕ C₂ = ${bin(C1)} ⊕ ${bin(C2)} = ${bin(XORR)} = P₁ ⊕ P₂. Step 2: XOR that with P₁ = ${bin(P1)} to isolate P₂.` },
-          };
-        })(),
-      ],
-    },
   ],
 };
 
-export default chapter;
+export default xorTheory;

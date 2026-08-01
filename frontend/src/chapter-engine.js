@@ -266,3 +266,30 @@ export function initChapterSystem({ chapters, listContainer, screenRoot, showScr
 
   return { openChapter };
 }
+// Inside chapter-engine.js when rendering exercise items:
+const cardEl = document.createElement('div');
+cardEl.className = 'ex-exercise';
+
+cardEl.innerHTML = `
+  <div class="ex-ex-num">${item.num}</div>
+  <div class="ex-ex-body">
+    <div class="ex-ex-title">${item.title}</div>
+    <div class="ex-body-target">${item.renderBody ? item.renderBody() : item.bodyHtml}</div>
+    
+    <div class="ex-input-row">
+      <span class="ex-input-label">${item.inputLabel}</span>
+      <input type="text" class="ex-hex-input" maxlength="${item.input.maxlength}">
+      <button class="ex-btn btn-check">Check</button>
+      ${item.reroll ? '<button class="ex-btn-secondary btn-reroll">🎲 Randomize Values</button>' : ''}
+    </div>
+    <div class="ex-feedback"></div>
+  </div>
+`;
+
+// Attach reroll event handler
+const rerollBtn = cardEl.querySelector('.btn-reroll');
+if (rerollBtn && item.reroll) {
+  rerollBtn.addEventListener('click', () => {
+    item.reroll(cardEl);
+  });
+}
