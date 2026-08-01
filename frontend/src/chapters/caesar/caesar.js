@@ -20,7 +20,7 @@ export const chapter = {
     },
     {
       kind: 'formula',
-      lines: ['A→D, B→E, C→F (shift = 3)', 'X→A, Y→B, Z→C'],
+      lines: ['A→D, B→E, C→F', '(shift = 3)', 'X→A, Y→B, Z→C'],
       note: 'Only alphabetic characters are shifted. Spaces and punctuation remain unchanged.',
     },
     {

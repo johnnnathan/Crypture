@@ -1,7 +1,7 @@
 import { initChapterSystem } from "./chapter-engine.js";
 
-import xor from "./chapters/xor.js";
-import caesar from "./chapters/caesar.js";
+import xor from "./chapters/xor/index.js";
+import caesar from "./chapters/caesar/index.js";
 
 function showScreen(id) {
     document.querySelectorAll(".screen").forEach(screen => {

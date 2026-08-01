@@ -1,7 +1,38 @@
-// chapters/xor.js
+// chapters/xor/theory.js
 import { bin, hex, ascii, parseBinaryByte } from '../exercise-kit.js';
 
-export const chapter = {
+const style = document.createElement('style');
+style.textContent = `
+
+/* ── Live XOR widget ─────────────────────────────── */
+.ex-live-grid {
+  display: flex; gap: 24px; align-items: flex-start;
+  background: var(--bg-raised); border: 1px solid var(--border-mid);
+  border-radius: 4px; padding: 16px; margin-top: 12px;
+}
+.ex-live-inputs { display: flex; flex-direction: column; }
+.ex-live-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
+.result-row { border-top: 1px solid var(--border-mid); margin-top: 4px; padding-top: 10px; }
+.ex-live-label { font-family: var(--font-display); font-size: 11px; font-weight: 600; color: var(--text-dim); width: 14px; }
+.ex-live-op { font-size: 20px; color: var(--text-dim); padding: 4px 0 4px 24px; }
+.ex-live-sep { height: 1px; background: var(--border-dim); margin: 4px 0; }
+.ex-live-bin { font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); letter-spacing: 1px; }
+.ex-live-result-hex { font-family: var(--font-display); font-size: 16px; color: var(--accent); font-weight: 600; min-width: 60px; }
+.ex-bits-panel { flex: 1; }
+.ex-bits-label { font-size: 9px; color: var(--text-dim); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
+.ex-bits-display { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px; }
+.xor-bit {
+  width: 28px; height: 28px; border-radius: 3px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-size: 13px; font-weight: 700;
+  border: 1px solid var(--border-mid);
+}
+.xor-bit.bit-1 { background: var(--accent-glow); border-color: var(--accent); color: var(--accent); }
+.xor-bit.bit-0 { background: var(--bg-base); color: var(--text-dim); }
+.ex-bits-meta { font-size: 10px; color: var(--text-dim); }
+`
+
+export const xorTheory = {
   id: 'xor',
   num: '01',
   tag: 'XOR Gate',

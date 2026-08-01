@@ -1,0 +1,158 @@
+/* ═══════════════════════════════════════════════════
+   CRYPTOCIRCUIT — Base: variables, reset, screens, topbar, modals
+═══════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;600;900&family=IBM+Plex+Mono:wght@300;400;500&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  /* Core palette — phosphor green on near-black */
+  --bg-void:     #060809;
+  --bg-base:     #0a0d10;
+  --bg-surface:  #0e1318;
+  --bg-raised:   #131920;
+  --bg-hover:    #18202a;
+  --bg-active:   #1e2832;
+
+  --border-dim:  #1a2230;
+  --border-mid:  #243040;
+  --border-hi:   #304050;
+
+  --text-primary:   #c8d8e8;
+  --text-secondary: #7090a8;
+  --text-dim:       #3a5060;
+  --text-accent:    #00e5aa;
+
+  --accent:      #00e5aa;
+  --accent-dim:  #00a878;
+  --accent-glow: rgba(0, 229, 170, 0.12);
+  --dim:         #3a5060;
+
+  /* Node type colors */
+  --xor:     #00e5aa;
+  --sbox:    #4db8ff;
+  --caesar:  #ff8c42;
+  --vig:     #c084fc;
+
+  --xor-dim:     rgba(0, 229, 170, 0.15);
+  --sbox-dim:    rgba(77, 184, 255, 0.15);
+  --caesar-dim:  rgba(255, 140, 66, 0.15);
+  --vig-dim:     rgba(192, 132, 252, 0.15);
+
+  --font-display: 'Orbitron', monospace;
+  --font-mono:    'IBM Plex Mono', 'Share Tech Mono', monospace;
+
+  --topbar-h:    44px;
+  --left-panel:  210px;
+  --right-panel: 240px;
+}
+
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: var(--bg-void);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Screens ────────────────────────────────────── */
+.screen {
+  position: fixed; inset: 0;
+  display: flex; flex-direction: column;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+.screen.active { opacity: 1; pointer-events: all; }
+
+/* ── Shared topbar ──────────────────────────────── */
+.topbar {
+  height: var(--topbar-h);
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-mid);
+  display: flex; align-items: center;
+  gap: 0; flex-shrink: 0;
+  padding: 0 8px;
+}
+
+.tb-back {
+  display: flex; align-items: center; gap: 6px;
+  padding: 0 12px; height: 100%;
+  background: none; border: none;
+  color: var(--text-secondary); cursor: pointer;
+  font-family: var(--font-mono); font-size: 11px;
+  transition: color 0.15s;
+}
+.tb-back:hover { color: var(--text-primary); }
+
+.tb-divider { width: 1px; height: 20px; background: var(--border-mid); margin: 0 4px; }
+
+.tb-title {
+  font-family: var(--font-display);
+  font-size: 11px; font-weight: 600;
+  color: var(--text-secondary); letter-spacing: 1px;
+  padding: 0 12px;
+}
+
+.tb-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 10px;
+  background: transparent;
+  border: 1px solid var(--border-mid); border-radius: 3px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono); font-size: 11px;
+  cursor: pointer; transition: all 0.15s; white-space: nowrap;
+}
+.tb-btn:hover { border-color: var(--border-hi); color: var(--text-primary); background: var(--bg-raised); }
+.tb-btn.accent { border-color: var(--accent-dim); color: var(--accent); }
+.tb-btn.accent:hover { border-color: var(--accent); background: var(--accent-glow); box-shadow: 0 0 10px var(--accent-glow); }
+.tb-btn.full-width { width: 100%; justify-content: center; }
+
+.tb-actions { display: flex; align-items: center; gap: 4px; }
+.tb-spacer { flex: 1; }
+.tb-step-info { font-size: 11px; color: var(--text-dim); padding: 0 12px; }
+.tb-step-info span { color: var(--accent); }
+
+/* ── JSON Modal ─────────────────────────────────── */
+.modal-backdrop {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(6,8,9,0.85);
+  display: flex; align-items: center; justify-content: center;
+}
+.modal {
+  background: var(--bg-surface); border: 1px solid var(--border-mid);
+  border-radius: 4px; width: 700px; max-width: 90vw; max-height: 80vh;
+  display: flex; flex-direction: column;
+}
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; border-bottom: 1px solid var(--border-dim);
+  font-size: 12px; color: var(--text-secondary);
+  font-family: var(--font-display); letter-spacing: 1px;
+}
+.modal-close { background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 14px; transition: color 0.15s; }
+.modal-close:hover { color: var(--text-primary); }
+.modal-body {
+  flex: 1; overflow-y: auto; overflow-x: auto; padding: 16px;
+  font-size: 11px; color: var(--accent); line-height: 1.6; white-space: pre;
+  font-family: var(--font-mono);
+}
+.modal-body::-webkit-scrollbar { width: 3px; height: 3px; }
+.modal-body::-webkit-scrollbar-thumb { background: var(--border-mid); }
+
+/* ── Tooltip ────────────────────────────────────── */
+.tooltip {
+  position: fixed; z-index: 9999;
+  background: var(--bg-active); border: 1px solid var(--border-hi);
+  border-radius: 3px; padding: 4px 8px;
+  font-size: 10px; color: var(--text-primary);
+  pointer-events: none; display: none;
+}
+
+/* ── Global scrollbars ──────────────────────────── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 2px; }
