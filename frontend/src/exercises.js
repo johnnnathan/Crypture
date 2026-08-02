@@ -1,6 +1,7 @@
 // exercises.js
 import { initChapterSystem } from "./chapter-engine.js";
 
+import chapter0 from "./chapters/info/index.js"
 import xorPages from "./chapters/xor/index.js";
 import caesarPages from "./chapters/caesar/index.js";
 
@@ -18,6 +19,7 @@ function showScreen(id) {
 export function initExercises(CircuitWasm) {
     // Spread the exported arrays so 'chapters' is a single flat array of objects
     const chapters = [
+        ...chapter0,
         ...xorPages,
         ...caesarPages
     ];
