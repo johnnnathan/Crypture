@@ -1,6 +1,5 @@
 import { bin, hex, ascii, parseBinaryByte } from '../../exercise-kit.js';
 
-
 export const xorTheory = {
   id: 'xor-theory',
   num: '01.1',
@@ -12,6 +11,93 @@ export const xorTheory = {
   topbarTitle: 'Exercise 01 — XOR',
 
   blocks: [
+    // ── 1. Conceptual Intro ───────────────────────────────────────────────
+    {
+      kind: 'text',
+      heading: 'h2',
+      title: 'The XOR Operation',
+      html: `
+        <p class="ex-p">XOR (exclusive-or, written <strong>⊕</strong>) operates on individual bits. The output is <strong>1</strong> when the two input bits differ, and <strong>0</strong> when they match. Applied to bytes, it works column by column across all 8 bit positions simultaneously.</p>
+        <p class="ex-p">Two properties make XOR central to cryptography:</p>
+        <ul class="ex-list">
+          <li><strong>Self-inverse:</strong> <code>A ⊕ B ⊕ B = A</code>. Applying XOR with the same value twice restores the original — so the same operation encrypts and decrypts.</li>
+          <li><strong>Commutativity and associativity:</strong> <code>A ⊕ B = B ⊕ A</code>, and grouping doesn't matter. This lets us rearrange equations to recover unknowns.</li>
+        </ul>`,
+    },
+
+    // ── 2. Formula ────────────────────────────────────────────────────────
+    {
+      kind: 'formula',
+      lines: ['Encrypt:  C = P ⊕ K', 'Decrypt:  P = C ⊕ K'],
+      note: 'If C = P ⊕ K, then C ⊕ K = P ⊕ K ⊕ K = P ⊕ 0 = P.',
+    },
+
+    // ── 3. Tables ─────────────────────────────────────────────────────────
+    {
+      kind: 'text',
+      heading: 'h3',
+      title: 'Bit Interaction Table',
+      html: `<p class="ex-p">How every combination of two input bits produces an output. The defining rule: output is 1 only when inputs differ.</p>`,
+    },
+    {
+      kind: 'tablesRow',
+      tables: [
+        {
+          label: 'XOR Truth Table',
+          columns: ['A', 'B', 'A ⊕ B'],
+          rows: [
+            ['0', '0', '<span class="bit-0">0</span>'],
+            ['0', '1', '<span class="bit-1">1</span>'],
+            ['1', '0', '<span class="bit-1">1</span>'],
+            ['1', '1', '<span class="bit-0">0</span>'],
+          ],
+        },
+        {
+          label: 'XOR vs AND vs OR',
+          columns: ['A', 'B', 'A AND B', 'A OR B', 'A XOR B'],
+          rows: [
+            ['0', '0', '0', '0', '<span class="bit-0">0</span>'],
+            ['0', '1', '0', '1', '<span class="bit-1">1</span>'],
+            ['1', '0', '0', '1', '<span class="bit-1">1</span>'],
+            ['1', '1', '1', '1', '<span class="bit-0">0</span>'],
+          ],
+        },
+      ],
+    },
+
+    // ── 4. Worked Examples ────────────────────────────────────────────────
+    {
+      kind: 'custom',
+      html: `
+        <div class="ex-examples-grid">
+          <div class="ex-example">
+            <div class="ex-example-label">Example 1 — 11111111 ⊕ 00001111</div>
+            <div class="ex-bitrow"><span class="ex-bit-label">A</span><span class="xor-bits">1 1 1 1 1 1 1 1</span></div>
+            <div class="ex-bitrow"><span class="ex-bit-label">B</span><span class="xor-bits">0 0 0 0 1 1 1 1</span></div>
+            <div class="ex-bitrow-sep">⊕</div>
+            <div class="ex-bitrow result"><span class="ex-bit-label">R</span><span class="xor-bits">1 1 1 1 0 0 0 0</span></div>
+            <div class="ex-example-note">XOR with 00001111 flips the low nibble, preserves the high nibble.</div>
+          </div>
+          <div class="ex-example">
+            <div class="ex-example-label">Example 2 — 10101011 ⊕ 10101011</div>
+            <div class="ex-bitrow"><span class="ex-bit-label">A</span><span class="xor-bits">1 0 1 0 1 0 1 1</span></div>
+            <div class="ex-bitrow"><span class="ex-bit-label">B</span><span class="xor-bits">1 0 1 0 1 0 1 1</span></div>
+            <div class="ex-bitrow-sep">⊕</div>
+            <div class="ex-bitrow result"><span class="ex-bit-label">R</span><span class="xor-bits">0 0 0 0 0 0 0 0</span></div>
+            <div class="ex-example-note">A value XOR'd with itself is always 0. This is the self-inverse property.</div>
+          </div>
+          <div class="ex-example">
+            <div class="ex-example-label">Example 3 — 01001000 ⊕ 00000000</div>
+            <div class="ex-bitrow"><span class="ex-bit-label">A</span><span class="xor-bits">0 1 0 0 1 0 0 0</span></div>
+            <div class="ex-bitrow"><span class="ex-bit-label">B</span><span class="xor-bits">0 0 0 0 0 0 0 0</span></div>
+            <div class="ex-bitrow-sep">⊕</div>
+            <div class="ex-bitrow result"><span class="ex-bit-label">R</span><span class="xor-bits">0 1 0 0 1 0 0 0</span></div>
+            <div class="ex-example-note">XOR with 0 is the identity — output equals input. A zero key provides no encryption.</div>
+          </div>
+        </div>`,
+    },
+
+    // ── 5. Interactive Demo ───────────────────────────────────────────────
     {
       kind: 'custom',
       title: 'Interactive XOR',
@@ -53,7 +139,6 @@ export const xorTheory = {
           if (a === null || b === null) return;
           const result = a ^ b;
 
-          // Update secondary formatting
           container.querySelector('#xor-live-a-hex').textContent = hex(a);
           container.querySelector('#xor-live-b-hex').textContent = hex(b);
           container.querySelector('#xor-live-r-hex').textContent = hex(result);

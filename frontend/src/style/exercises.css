@@ -241,3 +241,25 @@
 /* ── Radio group ─────────────────────────────────── */
 .ex-radio-group { display: flex; flex-direction: column; gap: 8px; margin: 10px 0; }
 .ex-radio { display: flex; align-items: flex-start; gap: 8px; font-size: 11px; color: var(--text-secondary); line-height: 1.6; cursor: pointer; }
+
+
+.ex-practice-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 10px;
+}
+.ex-btn-secondary {
+    background: transparent;
+    border: 1px solid var(--border-mid, #222834);
+    color: var(--text-dim, #64748b);
+    border-radius: 3px;
+    padding: 4px 10px;
+    font-family: var(--font-mono, monospace);
+    font-size: 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.ex-btn-secondary:hover {
+    color: var(--text-primary, #e2e8f0);
+    border-color: var(--border-hi, #334155);
+}

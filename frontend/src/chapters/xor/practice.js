@@ -1,30 +1,5 @@
 import { bin, hex, ascii, getRandomByte } from '../../exercise-kit.js';
 
-// Inject page-specific styles safely
-const style = document.createElement('style');
-style.textContent = `
-  .ex-practice-actions {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: 10px;
-  }
-  .ex-btn-secondary {
-    background: transparent;
-    border: 1px solid var(--border-mid, #222834);
-    color: var(--text-dim, #64748b);
-    border-radius: 3px;
-    padding: 4px 10px;
-    font-family: var(--font-mono, monospace);
-    font-size: 10px;
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-  .ex-btn-secondary:hover {
-    color: var(--text-primary, #e2e8f0);
-    border-color: var(--border-hi, #334155);
-  }
-`;
-document.head.appendChild(style);
 
 /**
  * Helper to construct a dynamic, re-rollable exercise item
