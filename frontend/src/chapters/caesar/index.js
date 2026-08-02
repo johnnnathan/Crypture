@@ -1,5 +1,5 @@
 // chapters/caesar.js
-import { hex, parseDecByte } from '../exercise-kit.js';
+import { hex, parseDecByte } from '../../exercise-kit.js';
 
 export const chapter = {
   id: 'caesar',

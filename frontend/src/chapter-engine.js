@@ -1,15 +1,4 @@
 // js/chapter-engine.js
-//
-// Generic renderer + router for "chapters" (guided exercises).
-// A chapter is a plain data object (see chapters/_template.js) describing
-// a list of content BLOCKS. This engine knows how to turn that data into
-// the same DOM/CSS structure the hand-written pages used to have, and
-// wires up the interactive bits generically so individual chapter files
-// stay pure data + small callbacks — no DOM bootstrapping boilerplate.
-//
-// Supported block kinds: 'text', 'formula', 'table', 'tablesRow',
-// 'custom', 'exerciseGroup'. See chapters/_template.js for the schema
-// of each.
 
 import {
   parseBinaryByte, parseHexByte, parseIntLoose, parseTextExact,
@@ -37,9 +26,6 @@ function esc(s) {
 }
 
 // ── Block renderers ──────────────────────────────────────────────────────
-// Each returns an HTML string. They only need to agree with style.css's
-// existing class names (ex-section, ex-h2, ex-table, etc.) — no new CSS
-// is introduced by the engine itself.
 
 function renderTextBlock(b) {
   const H = b.heading === 'h3' ? 'h3' : 'h2';
@@ -99,22 +85,30 @@ function renderExerciseItem(chapter, blockIdx, item, idx) {
           <span>${o.label}</span>
         </label>`).join('')}
       </div>
-      <button id="${uid}-btn" class="ex-btn">Check</button>`;
+      <button id="${uid}-btn" class="ex-btn btn-check">Check</button>`;
   } else {
     const cls = item.input.type === 'text' ? 'ex-text-input' : 'ex-hex-input';
     const widthStyle = item.input.width ? ` style="width:${item.input.width}"` : '';
+    const rerollBtn = typeof item.reroll === 'function'
+      ? `<button id="${uid}-reroll" class="ex-btn-secondary btn-reroll">🎲 Randomize Values</button>`
+      : '';
+
     inputHtml = `<div class="ex-input-row">
       <span class="ex-input-label">${item.inputLabel || 'Answer ='}</span>
       <input id="${uid}-input" class="${cls}" type="text" placeholder="${item.input.placeholder || ''}" maxlength="${item.input.maxlength || 32}"${widthStyle} />
-      <button id="${uid}-btn" class="ex-btn">Check</button>
+      <button id="${uid}-btn" class="ex-btn btn-check">Check</button>
+      ${rerollBtn}
     </div>`;
   }
 
-  return `<div class="ex-exercise">
+  // Support dynamic renderBody function alongside static bodyHtml
+  const bodyContent = typeof item.renderBody === 'function' ? item.renderBody() : (item.bodyHtml || '');
+
+  return `<div class="ex-exercise" id="${uid}-card">
     <div class="ex-ex-num">${item.num}</div>
     <div class="ex-ex-body">
       <div class="ex-ex-title">${item.title}</div>
-      ${item.bodyHtml || ''}
+      <div class="ex-body-target">${bodyContent}</div>
       ${hint}
       ${dataRows}
       ${inputHtml}
@@ -136,8 +130,11 @@ function renderExerciseGroupBlock(chapter, blockIdx, b) {
 function wireExerciseGroup(container, chapter, blockIdx, b, kit) {
   b.items.forEach((item, idx) => {
     const uid = `${chapter.id}-b${blockIdx}-e${idx}`;
+    const cardEl = container.querySelector(`#${uid}-card`);
     const fb = container.querySelector(`#${uid}-fb`);
     const btn = container.querySelector(`#${uid}-btn`);
+    const rerollBtn = container.querySelector(`#${uid}-reroll`);
+
     const getRaw = () => {
       if (item.input.type === 'mc') {
         const checked = container.querySelector(`input[name="${uid}"]:checked`);
@@ -147,20 +144,30 @@ function wireExerciseGroup(container, chapter, blockIdx, b, kit) {
     };
     const parse = item.parse || DEFAULT_PARSERS[item.input.type] || (v => v);
 
-    btn.addEventListener('click', () => {
-      const raw = getRaw();
-      if (raw === null || raw === '') {
-        showFeedback(fb, false, item.invalidMessage || 'Enter an answer first.');
-        return;
-      }
-      const parsed = parse(raw);
-      if (parsed === null || parsed === undefined) {
-        showFeedback(fb, false, item.invalidMessage || 'That doesn\'t look like a valid answer — check the format.');
-        return;
-      }
-      const result = item.check(parsed, raw);
-      showFeedback(fb, result.correct, result.message);
-    });
+    // Bind check button handler
+    if (btn) {
+      btn.addEventListener('click', () => {
+        const raw = getRaw();
+        if (raw === null || raw === '') {
+          showFeedback(fb, false, item.invalidMessage || 'Enter an answer first.');
+          return;
+        }
+        const parsed = parse(raw);
+        if (parsed === null || parsed === undefined) {
+          showFeedback(fb, false, item.invalidMessage || 'That doesn\'t look like a valid answer — check the format.');
+          return;
+        }
+        const result = item.check(parsed, raw);
+        showFeedback(fb, result.correct, result.message);
+      });
+    }
+
+    // Bind randomize/reroll button handler
+    if (rerollBtn && typeof item.reroll === 'function') {
+      rerollBtn.addEventListener('click', () => {
+        item.reroll(cardEl);
+      });
+    }
 
     if (item.onMount) item.onMount(container, kit, uid);
   });
@@ -203,7 +210,6 @@ function buildChapterScreen(chapter, kit) {
     if (html) page.insertAdjacentHTML('beforeend', html);
   });
 
-  // Wire interactivity after the whole chapter is in the DOM.
   chapter.blocks.forEach((block, idx) => {
     if (block.kind === 'exerciseGroup') wireExerciseGroup(page, chapter, idx, block, kit);
     if (block.kind === 'custom' && typeof block.init === 'function') block.init(page, kit);
@@ -216,20 +222,10 @@ function buildChapterScreen(chapter, kit) {
 
 // ── Public API ────────────────────────────────────────────────────────────
 
-/**
- * Builds the exercise-list cards and lazily-rendered chapter screens.
- *
- * @param {Object} opts
- * @param {Array}  opts.chapters       ordered chapter definitions
- * @param {Element} opts.listContainer element to fill with .ex-list-card entries
- * @param {Element} opts.screenRoot    element chapter <div class="screen"> nodes get appended to
- * @param {Function} opts.showScreen   showScreen(id) — same router used by the rest of the app
- * @param {Object} opts.kit            helpers passed through to custom block init()/onMount()
- */
 export function initChapterSystem({ chapters, listContainer, screenRoot, showScreen, kit = {} }) {
-  const built = new Map(); // chapter.id -> screen element (lazy)
+  const built = new Map();
 
-  listContainer.innerHTML = chapters.map((ch, i) => `
+  listContainer.innerHTML = chapters.map((ch) => `
     <div class="ex-list-card" data-chapter-id="${ch.id}">
       <div class="ex-card-num">${ch.num}</div>
       <div class="ex-card-color ${ch.tagClass}"></div>
@@ -257,39 +253,10 @@ export function initChapterSystem({ chapters, listContainer, screenRoot, showScr
     card.addEventListener('click', () => openChapter(card.dataset.chapterId));
   });
 
-  // Event delegation for every chapter's back button (screens are added
-  // dynamically, so we bind once on the root rather than per-screen).
   screenRoot.addEventListener('click', (e) => {
     const back = e.target.closest('[data-nav="exercises"]');
     if (back) showScreen('screen-exercises');
   });
 
   return { openChapter };
-}
-// Inside chapter-engine.js when rendering exercise items:
-const cardEl = document.createElement('div');
-cardEl.className = 'ex-exercise';
-
-cardEl.innerHTML = `
-  <div class="ex-ex-num">${item.num}</div>
-  <div class="ex-ex-body">
-    <div class="ex-ex-title">${item.title}</div>
-    <div class="ex-body-target">${item.renderBody ? item.renderBody() : item.bodyHtml}</div>
-    
-    <div class="ex-input-row">
-      <span class="ex-input-label">${item.inputLabel}</span>
-      <input type="text" class="ex-hex-input" maxlength="${item.input.maxlength}">
-      <button class="ex-btn btn-check">Check</button>
-      ${item.reroll ? '<button class="ex-btn-secondary btn-reroll">🎲 Randomize Values</button>' : ''}
-    </div>
-    <div class="ex-feedback"></div>
-  </div>
-`;
-
-// Attach reroll event handler
-const rerollBtn = cardEl.querySelector('.btn-reroll');
-if (rerollBtn && item.reroll) {
-  rerollBtn.addEventListener('click', () => {
-    item.reroll(cardEl);
-  });
 }

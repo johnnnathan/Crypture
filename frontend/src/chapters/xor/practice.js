@@ -1,6 +1,6 @@
 import { bin, hex, ascii, getRandomByte } from '../../exercise-kit.js';
 
-// Inject page-specific styles for the dynamic practice page
+// Inject page-specific styles safely
 const style = document.createElement('style');
 style.textContent = `
   .ex-practice-actions {
@@ -10,18 +10,18 @@ style.textContent = `
   }
   .ex-btn-secondary {
     background: transparent;
-    border: 1px solid var(--border-mid);
-    color: var(--text-dim);
+    border: 1px solid var(--border-mid, #222834);
+    color: var(--text-dim, #64748b);
     border-radius: 3px;
     padding: 4px 10px;
-    font-family: var(--font-mono);
+    font-family: var(--font-mono, monospace);
     font-size: 10px;
     cursor: pointer;
     transition: all 0.15s;
   }
   .ex-btn-secondary:hover {
-    color: var(--text-primary);
-    border-color: var(--border-hi);
+    color: var(--text-primary, #e2e8f0);
+    border-color: var(--border-hi, #334155);
   }
 `;
 document.head.appendChild(style);
@@ -35,25 +35,20 @@ function createDynamicExercise({ num, title, generateData, hint, inputLabel }) {
   return {
     num,
     title,
-    // Dynamic generator function for initial or re-rendered HTML
     renderBody() {
       return currentData.bodyHtml;
     },
     hint,
     input: { type: 'binary', maxlength: 8 },
     inputLabel,
-    // Real-time verification against current randomized values
     check: (val) => currentData.check(val),
     
-    // Custom trigger to refresh the exercise values
     reroll(cardContainer) {
       currentData = generateData();
-      // Update DOM content inside the card
       const bodyEl = cardContainer.querySelector('.ex-ex-body-content');
       if (bodyEl) {
         bodyEl.innerHTML = currentData.bodyHtml;
       }
-      // Clear input and feedback
       const inputEl = cardContainer.querySelector('input');
       const feedbackEl = cardContainer.querySelector('.ex-feedback');
       if (inputEl) inputEl.value = '';
@@ -82,13 +77,12 @@ export const xorPractice = {
       heading: 'h2',
       title: 'Randomized Calculation Drills',
       html: `
-        <p class="ex-p">Practice calculating XOR outcomes by hand until the bitwise operations become automatic. Use the <strong>"Randomize Values"</strong> button on any exercise to get a fresh set of numbers for repeated drill practice.</p>`
+        <p class="ex-p">Practice calculating XOR outcomes by hand until the bitwise operations become automatic.</p>`
     },
     {
       kind: 'exerciseGroup',
       title: 'Drills',
       items: [
-        // ── Exercise 1: Standard Byte XOR Drill ─────────────────────────────
         createDynamicExercise({
           num: 'P1.1',
           title: 'Random Byte XOR Drill',
@@ -106,19 +100,12 @@ export const xorPractice = {
                   </p>
                 </div>`,
               check: (val) => val === ANS
-                ? { 
-                    correct: true, 
-                    message: `Correct! ${bin(A)} ⊕ ${bin(B)} = ${bin(ANS)}.\nHex: ${hex(A)} ⊕ ${hex(B)} = ${hex(ANS)}.` 
-                  }
-                : { 
-                    correct: false, 
-                    message: `Incorrect. Expected ${bin(ANS)} (${hex(ANS)}).\nCalculated: ${bin(A)} XOR ${bin(B)}.` 
-                  }
+                ? { correct: true, message: `Correct! ${bin(A)} ⊕ ${bin(B)} = ${bin(ANS)}.\nHex: ${hex(A)} ⊕ ${hex(B)} = ${hex(ANS)}.` }
+                : { correct: false, message: `Incorrect. Expected ${bin(ANS)} (${hex(ANS)}).\nCalculated: ${bin(A)} XOR ${bin(B)}.` }
             };
           }
         }),
 
-        // ── Exercise 2: Known-Plaintext Key Recovery Drill ──────────────────
         createDynamicExercise({
           num: 'P1.2',
           title: 'Random Key Recovery Drill',
@@ -138,19 +125,12 @@ export const xorPractice = {
                   </div>
                 </div>`,
               check: (val) => val === K
-                ? { 
-                    correct: true, 
-                    message: `Key Recovered! K = P ⊕ C = ${bin(P)} ⊕ ${bin(C)} = ${bin(K)}.` 
-                  }
-                : { 
-                    correct: false, 
-                    message: `Incorrect key. K = ${bin(P)} ⊕ ${bin(C)} should yield ${bin(K)}.` 
-                  }
+                ? { correct: true, message: `Key Recovered! K = P ⊕ C = ${bin(P)} ⊕ ${bin(C)} = ${bin(K)}.` }
+                : { correct: false, message: `Incorrect key. K = ${bin(P)} ⊕ ${bin(C)} should yield ${bin(K)}.` }
             };
           }
         }),
 
-        // ── Exercise 3: Double Ciphertext Key-Cancellation Drill ────────────
         createDynamicExercise({
           num: 'P1.3',
           title: 'Key-Reuse Cancellation Drill',
@@ -175,14 +155,8 @@ export const xorPractice = {
                   </div>
                 </div>`,
               check: (val) => val === P2
-                ? { 
-                    correct: true, 
-                    message: `Success! P₂ = ${bin(P2)}.\nC₁ ⊕ C₂ = ${bin(XORR)} (P₁ ⊕ P₂).\n${bin(P1)} ⊕ ${bin(XORR)} = ${bin(P2)}.` 
-                  }
-                : { 
-                    correct: false, 
-                    message: `Incorrect. Expected P₂ = ${bin(P2)}.\nC₁ ⊕ C₂ = ${bin(XORR)}, then XOR with P₁ (${bin(P1)}).` 
-                  }
+                ? { correct: true, message: `Success! P₂ = ${bin(P2)}.\nC₁ ⊕ C₂ = ${bin(XORR)} (P₁ ⊕ P₂).\n${bin(P1)} ⊕ ${bin(XORR)} = ${bin(P2)}.` }
+                : { correct: false, message: `Incorrect. Expected P₂ = ${bin(P2)}.\nC₁ ⊕ C₂ = ${bin(XORR)}, then XOR with P₁ (${bin(P1)}).` }
             };
           }
         })

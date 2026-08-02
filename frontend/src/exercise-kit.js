@@ -67,3 +67,7 @@ export function clearFeedback(el) {
 export function scoped(container) {
   return (sel) => container.querySelector(sel);
 }
+
+export function getRandomByte() {
+  return Math.floor(Math.random() * 256);
+}

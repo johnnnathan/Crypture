@@ -1,6 +1,5 @@
-import { bin, hex, ascii, parseBinaryByte } from '../exercise-kit.js';
+import { bin, hex, ascii, parseBinaryByte } from '../../exercise-kit.js';
 
-document.head.appendChild(style);
 
 export const xorTheory = {
   id: 'xor-theory',
