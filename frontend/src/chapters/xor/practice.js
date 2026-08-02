@@ -100,8 +100,8 @@ export const xorPractice = {
                   </p>
                 </div>`,
               check: (val) => val === ANS
-                ? { correct: true, message: `Correct! ${bin(A)} ⊕ ${bin(B)} = ${bin(ANS)}.\nHex: ${hex(A)} ⊕ ${hex(B)} = ${hex(ANS)}.` }
-                : { correct: false, message: `Incorrect. Expected ${bin(ANS)} (${hex(ANS)}).\nCalculated: ${bin(A)} XOR ${bin(B)}.` }
+                ? { correct: true, message: `Correct! ` }
+                : { correct: false, message: `Incorrect.` }
             };
           }
         }),
@@ -126,7 +126,7 @@ export const xorPractice = {
                 </div>`,
               check: (val) => val === K
                 ? { correct: true, message: `Key Recovered! K = P ⊕ C = ${bin(P)} ⊕ ${bin(C)} = ${bin(K)}.` }
-                : { correct: false, message: `Incorrect key. K = ${bin(P)} ⊕ ${bin(C)} should yield ${bin(K)}.` }
+                : { correct: false, message: `Incorrect key.` }
             };
           }
         }),
@@ -156,7 +156,7 @@ export const xorPractice = {
                 </div>`,
               check: (val) => val === P2
                 ? { correct: true, message: `Success! P₂ = ${bin(P2)}.\nC₁ ⊕ C₂ = ${bin(XORR)} (P₁ ⊕ P₂).\n${bin(P1)} ⊕ ${bin(XORR)} = ${bin(P2)}.` }
-                : { correct: false, message: `Incorrect. Expected P₂ = ${bin(P2)}.\nC₁ ⊕ C₂ = ${bin(XORR)}, then XOR with P₁ (${bin(P1)}).` }
+                : { correct: false, message: `Incorrect.` }
             };
           }
         })

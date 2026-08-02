@@ -3,7 +3,7 @@ import { bin, hex, ascii, parseBinaryByte } from '../../exercise-kit.js';
 
 export const xorTheory = {
   id: 'xor-theory',
-  num: '01',
+  num: '01.1',
   tag: 'XOR Gate',
   tagClass: 'xor',
   title: 'XOR — The Fundamental Cipher Primitive',

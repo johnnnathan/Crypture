@@ -5,6 +5,24 @@
 ═══════════════════════════════════════════════════ */
 
 /* ── Exercise list screen ───────────────────────── */
+
+.screen {
+    display: none; 
+    width: 100%;
+    height: 100vh;
+    overflow-y: auto;
+    box-sizing: border-box;
+
+}
+.screen.active {
+  display: flex; 
+  flex-direction: column;
+}
+
+#screen-exercises {
+  overflow-y: auto;
+  height: 100vh;
+}
 .ex-list-screen {
   flex: 1; min-height: 0;
   display: flex; flex-direction: column; align-items: center;

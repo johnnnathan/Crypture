@@ -2,7 +2,7 @@
 import { initChapterSystem } from "./chapter-engine.js";
 
 import xorPages from "./chapters/xor/index.js";
-//import caesarPages from "./chapters/caesar/index.js";
+import caesarPages from "./chapters/caesar/index.js";
 
 function showScreen(id) {
     document.querySelectorAll(".screen").forEach(screen => {
@@ -19,7 +19,7 @@ export function initExercises(CircuitWasm) {
     // Spread the exported arrays so 'chapters' is a single flat array of objects
     const chapters = [
         ...xorPages,
- //       ...caesarPages
+        ...caesarPages
     ];
 
     const listContainer = document.getElementById("exercise-list");
