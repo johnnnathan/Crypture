@@ -32,8 +32,8 @@ export const caesarTheory = {
           <label>Key K <input id="cae-demo-k" class="ex-hex-input" type="range" min="0" max="25" value="13" style="width:120px;vertical-align:middle" /> <span id="cae-demo-k-val" class="accent">13</span></label>
         </div>
         <div class="ex-demo-box">
-          <div class="ex-demo-row"><span class="ex-demo-key">Encrypted</span><span id="cae-demo-enc" class="ex-demo-val accent mono">—</span></div>
-          <div class="ex-demo-row"><span class="ex-demo-key">Decrypted</span><span id="cae-demo-dec" class="ex-demo-val correct mono">—</span></div>
+          <div class="ex-demo-row"><span class="ex-demo-key">Plaintext</span><span id="cae-demo-dec" class="ex-demo-val correct mono">—</span></div>
+          <div class="ex-demo-row"><span class="ex-demo-key">Ciphertext</span><span id="cae-demo-enc" class="ex-demo-val accent mono">—</span></div>
         </div>
         <div class="ex-table-wrap" style="margin-top:12px">
           <div class="ex-table-label">Byte trace (first 8 chars)</div>
