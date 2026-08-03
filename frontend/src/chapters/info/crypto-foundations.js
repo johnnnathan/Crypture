@@ -1,6 +1,6 @@
 import { hex, ascii } from '../../exercise-kit.js';
 
-export const chapter0 = {
+export const cryptoFoundations = {
   id: 'foundations',
   num: '00',
   tag: 'Foundations',
@@ -102,4 +102,4 @@ export const chapter0 = {
   ],
 };
 
-export default chapter0;
+export default cryptoFoundations;

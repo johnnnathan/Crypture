@@ -1,5 +1,7 @@
-import { chapter0 } from './chapter0.js';
+import { cryptoFoundations } from './crypto-foundations.js';
+import { dataFoundations } from './data.js'
 
 export default [
-    chapter0,
+    cryptoFoundations, 
+    dataFoundations 
 ];
