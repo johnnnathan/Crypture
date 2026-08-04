@@ -1,14 +1,34 @@
 import { hex, bin } from '../../exercise-kit.js';
+import initWasm, { generate_caesar_drift_challenge, check_caesar_drift_challenge } from '../challenges_pkg/challenge_engine.js';
+
+let challengeData = null;
+let isWasmReady = false;
 
 export const caesarCtf = {
     id: 'caesar-ctf',
     num: '02.3',
     tag: 'CTF Challenge',
-    tagClass: 'caesar', // Make sure you have styling for .caesar tag class
+    tagClass: 'caesar',
     title: 'Challenge — The Positional Drift Cipher',
     desc: 'A rogue agent intercepted a stream encrypted with a modified Caesar cipher that shifts dynamically based on character index.',
     concepts: ['Polyalphabetic Shift', 'Positional Drift', 'Modular Arithmetic'],
     topbarTitle: 'Exercise 02 — Caesar CTF',
+
+    onMount: async () => {
+        if (!isWasmReady) {
+            await initWasm();
+            isWasmReady = true;
+            
+            challengeData = generate_caesar_drift_challenge(0n);
+            
+            const banner = document.getElementById('caesar-ciphertext-banner');
+            if (banner) {
+                // Extract using .get() for Map objects
+                const ct = challengeData.get('ciphertext');
+                banner.textContent = `Ciphertext: ${ct}`;
+            }
+        }
+    },
 
     blocks: [
       {
@@ -47,8 +67,8 @@ export const caesarCtf = {
 
           <ul class="ex-list">
             <li>The encryption key has length <strong>4</strong>.</li>
-            <li>The first three key characters are constant.</li>
-            <li>The final key character is variable, and shifts by a set amount every repetition of the key.</li>
+            <li>The first three key characters are constant every iteration. </li>
+            <li>The final key character is variable per iteration.</li>
             <li>Non-alphabetic characters (<code>{</code>, <code>_</code>, <code>}</code>) are copied unchanged and do not advance the key index.</li>
             <li>The intercepted plaintext follows the standard flag format <code>FLAG{...}</code>.</li>
           </ul>
@@ -67,35 +87,41 @@ export const caesarCtf = {
           {
             num: '2.CTF',
             title: 'Break the Modified Vigenère Cipher',
-            bodyHtml: `
-              <p class="ex-p">
-                Recover the missing fourth key character and decrypt the intercepted
-                ciphertext.
-              </p>
+            
+            renderBody: () => {
+                // Extract using .get() if available, fallback gracefully
+                const ct = challengeData ? challengeData.get('ciphertext') : 'Loading ciphertext...';
 
-              <div class="ex-code-banner">
-                Ciphertext: HDAY{OGDAHAEV_XAGWPWRW_KK_BJGSKSDDE}
-              </div>
-            `,
+                return `
+                  <p class="ex-p">
+                    Recover the missing fourth key character and decrypt the intercepted
+                    ciphertext.
+                  </p>
+
+                  <div id="caesar-ciphertext-banner" class="ex-code-banner">
+                    Ciphertext: ${ct}
+                  </div>
+                `;
+            },
+
             input: {
               type: 'text',
-              placeholder: 'FLAG{...}'
+              placeholder: 'FLAG{...}',
+              maxlength: 60,
+              style: 'width: 100%; max-width: 450px;'
             },
 
             parse: (raw) => raw.trim().toUpperCase(),
 
-            check: (val) =>
-              val === 'FLAG{MODIFIED_VIGENERE_IS_BREAKABLE}'
-                ? {
-                    correct: true,
-                    message:
-                      '🎉 Access Granted! You recovered the missing key letter and successfully decrypted the modified Vigenère ciphertext.'
-                  }
-                : {
-                    correct: false,
-                    message:
-                      'Incorrect flag. Remember to subtract both the repeating key value and the positional drift (i mod 4) during decryption.'
-                  },
+            check: (val) => {
+                if (!isWasmReady) {
+                    return {
+                        correct: false,
+                        message: "Challenge engine is still loading. Please try again."
+                    };
+                }
+                return check_caesar_drift_challenge(0n, val);
+            },
           },
         ],
       },
@@ -103,4 +129,3 @@ export const caesarCtf = {
 };
 
 export default caesarCtf;
-
