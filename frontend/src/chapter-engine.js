@@ -125,6 +125,59 @@ function renderExerciseGroupBlock(chapter, blockIdx, b) {
   </section>`;
 }
 
+// ── Media & Slideshow Block Renderers ────────────────────────────────────
+
+function renderMediaBlock(b, blockIdx, chapterId) {
+  const title = b.title ? `<h3 class="ex-h3">${b.title}</h3>` : '';
+  const desc = b.desc ? `<p class="ex-p">${b.desc}</p>` : '';
+  
+  // Single Image or Video
+  if (b.mediaType === 'video') {
+    return `
+      <section class="ex-section">
+        ${title}${desc}
+        <div class="ex-media-wrap">
+          <video controls class="ex-media-video" src="${b.src}" poster="${b.poster || ''}"></video>
+          ${b.caption ? `<div class="ex-media-caption">${b.caption}</div>` : ''}
+        </div>
+      </section>`;
+  }
+
+  // Slideshow / Carousel
+  if (b.items && Array.isArray(b.items)) {
+    const uid = `${chapterId}-b${blockIdx}-slideshow`;
+    const slides = b.items.map((item, idx) => `
+      <div class="ex-slide ${idx === 0 ? 'active' : ''}" data-slide-idx="${idx}">
+        <img src="${item.src}" alt="${item.alt || ''}" class="ex-slide-img" />
+        ${item.caption ? `<div class="ex-media-caption">${item.caption}</div>` : ''}
+      </div>
+    `).join('');
+
+    return `
+      <section class="ex-section">
+        ${title}${desc}
+        <div class="ex-slideshow-wrap" id="${uid}">
+          <div class="ex-slides-container">${slides}</div>
+          <div class="ex-slideshow-controls">
+            <button class="ex-btn-secondary btn-prev" aria-label="Previous Slide">❮ Prev</button>
+            <span class="ex-slide-counter"><span class="current-slide">1</span> / ${b.items.length}</span>
+            <button class="ex-btn-secondary btn-next" aria-label="Next Slide">Next ❯</button>
+          </div>
+        </div>
+      </section>`;
+  }
+
+  // Fallback: Single Image
+  return `
+    <section class="ex-section">
+      ${title}${desc}
+      <div class="ex-media-wrap">
+        <img src="${b.src}" alt="${b.alt || ''}" class="ex-media-img" />
+        ${b.caption ? `<div class="ex-media-caption">${b.caption}</div>` : ''}
+      </div>
+    </section>`;
+}
+
 // ── Wiring (event listeners) for exercise groups ────────────────────────
 
 function wireExerciseGroup(container, chapter, blockIdx, b, kit) {
@@ -173,6 +226,40 @@ function wireExerciseGroup(container, chapter, blockIdx, b, kit) {
   });
 }
 
+function wireSlideshowBlock(container, blockIdx, chapterId, b) {
+  if (!b.items || !Array.isArray(b.items)) return;
+
+  const uid = `${chapterId}-b${blockIdx}-slideshow`;
+  const wrap = container.querySelector(`#${uid}`);
+  if (!wrap) return;
+
+  const slides = wrap.querySelectorAll('.ex-slide');
+  const counter = wrap.querySelector('.current-slide');
+  const btnPrev = wrap.querySelector('.btn-prev');
+  const btnNext = wrap.querySelector('.btn-next');
+  let currentIdx = 0;
+
+  const showSlide = (idx) => {
+    slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+    currentIdx = idx;
+    if (counter) counter.textContent = currentIdx + 1;
+  };
+
+  if (btnPrev) {
+    btnPrev.addEventListener('click', () => {
+      const newIdx = (currentIdx - 1 + slides.length) % slides.length;
+      showSlide(newIdx);
+    });
+  }
+
+  if (btnNext) {
+    btnNext.addEventListener('click', () => {
+      const newIdx = (currentIdx + 1) % slides.length;
+      showSlide(newIdx);
+    });
+  }
+}
+
 // ── Chapter screen assembly ──────────────────────────────────────────────
 
 function renderBlock(chapter, idx, block) {
@@ -183,6 +270,7 @@ function renderBlock(chapter, idx, block) {
     case 'tablesRow': return renderTablesRowBlock(block);
     case 'custom': return renderCustomBlock(block);
     case 'exerciseGroup': return renderExerciseGroupBlock(chapter, idx, block);
+    case 'media': return renderMediaBlock(block, idx, chapter.id);
     default:
       console.warn('Unknown block kind:', block.kind);
       return '';
@@ -212,6 +300,7 @@ function buildChapterScreen(chapter, kit) {
 
   chapter.blocks.forEach((block, idx) => {
     if (block.kind === 'exerciseGroup') wireExerciseGroup(page, chapter, idx, block, kit);
+    if (block.kind === 'media') wireSlideshowBlock(page, idx, chapter.id, block);
     if (block.kind === 'custom' && typeof block.init === 'function') block.init(page, kit);
   });
 
