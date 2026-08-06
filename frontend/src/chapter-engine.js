@@ -10,7 +10,8 @@ const DEFAULT_PARSERS = {
   hex: parseHexByte,
   number: parseIntLoose,
   text: parseTextExact,
-  mc: (v) => (v ? v : null),
+  choice: (v) => (v ? String(v).trim() : null),
+  mc: (v) => (v ? String(v).trim() : null),
 };
 
 function el(html) { 
@@ -77,15 +78,22 @@ function renderExerciseItem(chapter, blockIdx, item, idx) {
   const hint = item.hint ? `<p class="ex-p hint">${item.hint}</p>` : '';
 
   let inputHtml;
-  if (item.input.type === 'mc') {
-    inputHtml = `<div class="ex-radio-group" id="${uid}-group">
-      ${item.input.options.map((o, i) => `
-        <label class="ex-radio">
-          <input type="radio" name="${uid}" value="${esc(o.value)}" />
-          <span>${o.label}</span>
-        </label>`).join('')}
+  if (item.input.type === 'mc' || item.input.type === 'choice') {
+    // Standardize options array format (supports array of strings or array of objects)
+    const options = (item.input.options || []).map(opt => {
+      if (typeof opt === 'string') return { label: opt, value: opt };
+      return opt;
+    });
+
+    inputHtml = `
+      <div class="ex-radio-group" id="${uid}-group" style="display: flex; flex-direction: column; gap: 8px; margin: 12px 0;">
+        ${options.map((o, i) => `
+          <label class="ex-radio" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <input type="radio" name="${uid}" value="${esc(o.value)}" />
+            <span>${o.label}</span>
+          </label>`).join('')}
       </div>
-      <button id="${uid}-btn" class="ex-btn btn-check">Check</button>`;
+      <button id="${uid}-btn" class="ex-btn btn-check" style="margin-top: 8px;">Check Answer</button>`;
   } else {
     const cls = item.input.type === 'text' ? 'ex-text-input' : 'ex-hex-input';
     const widthStyle = item.input.width ? ` style="width:${item.input.width}"` : '';
@@ -101,7 +109,6 @@ function renderExerciseItem(chapter, blockIdx, item, idx) {
     </div>`;
   }
 
-  // Support dynamic renderBody function alongside static bodyHtml
   const bodyContent = typeof item.renderBody === 'function' ? item.renderBody() : (item.bodyHtml || '');
 
   return `<div class="ex-exercise" id="${uid}-card">
@@ -131,7 +138,6 @@ function renderMediaBlock(b, blockIdx, chapterId) {
   const title = b.title ? `<h3 class="ex-h3">${b.title}</h3>` : '';
   const desc = b.desc ? `<p class="ex-p">${b.desc}</p>` : '';
   
-  // Single Image or Video
   if (b.mediaType === 'video') {
     return `
       <section class="ex-section">
@@ -143,7 +149,6 @@ function renderMediaBlock(b, blockIdx, chapterId) {
       </section>`;
   }
 
-  // Slideshow / Carousel
   if (b.items && Array.isArray(b.items)) {
     const uid = `${chapterId}-b${blockIdx}-slideshow`;
     const slides = b.items.map((item, idx) => `
@@ -167,7 +172,6 @@ function renderMediaBlock(b, blockIdx, chapterId) {
       </section>`;
   }
 
-  // Fallback: Single Image
   return `
     <section class="ex-section">
       ${title}${desc}
@@ -189,7 +193,7 @@ function wireExerciseGroup(container, chapter, blockIdx, b, kit) {
     const rerollBtn = container.querySelector(`#${uid}-reroll`);
 
     const getRaw = () => {
-      if (item.input.type === 'mc') {
+      if (item.input.type === 'mc' || item.input.type === 'choice') {
         const checked = container.querySelector(`input[name="${uid}"]:checked`);
         return checked ? checked.value : null;
       }
@@ -197,12 +201,11 @@ function wireExerciseGroup(container, chapter, blockIdx, b, kit) {
     };
     const parse = item.parse || DEFAULT_PARSERS[item.input.type] || (v => v);
 
-    // Bind check button handler
     if (btn) {
       btn.addEventListener('click', () => {
         const raw = getRaw();
         if (raw === null || raw === '') {
-          showFeedback(fb, false, item.invalidMessage || 'Enter an answer first.');
+          showFeedback(fb, false, item.invalidMessage || 'Please select an answer first.');
           return;
         }
         const parsed = parse(raw);
@@ -215,7 +218,6 @@ function wireExerciseGroup(container, chapter, blockIdx, b, kit) {
       });
     }
 
-    // Bind randomize/reroll button handler
     if (rerollBtn && typeof item.reroll === 'function') {
       rerollBtn.addEventListener('click', () => {
         item.reroll(cardEl);

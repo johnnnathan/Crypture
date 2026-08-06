@@ -6,9 +6,9 @@ export const xorTheory = {
   tag: 'XOR Gate',
   tagClass: 'xor',
   title: 'XOR — The Fundamental Cipher Primitive',
-  desc: 'Truth table, bit-level mechanics, known-plaintext key recovery, and the devastating consequences of one-time pad key reuse.',
-  concepts: ['Bit operations', 'Key recovery', 'Key-reuse attack'],
-  topbarTitle: 'Exercise 01 — XOR',
+  desc: 'Truth table, bit-level mechanics, known-plaintext key recovery, and stream ciphers via keystream generators.',
+  concepts: ['Bit operations', 'Key recovery', 'Stream Ciphers', 'Keystream Reuse'],
+  topbarTitle: 'Exercise 01 — XOR & Stream Ciphers',
 
   blocks: [
     // ── 1. Conceptual Intro ───────────────────────────────────────────────
@@ -156,6 +156,49 @@ export const xorTheory = {
         bInput.addEventListener('input', update);
         update();
       },
+    },
+
+    // ── 6. Stream Ciphers & Keystreams ────────────────────────────────────
+    {
+      kind: 'text',
+      heading: 'h2',
+      title: 'Stream Ciphers & The Binary Vigenère',
+      html: `
+        <p class="ex-p">
+          Classic polyalphabetic ciphers like <strong>Vigenère</strong> reuse a short keyword (e.g., <code>KEYKEY...</code>) to encrypt text. In modern cryptography, a <strong>Stream Cipher</strong> expands this exact principle to arbitrary binary data using XOR.
+        </p>
+
+        <p class="ex-p">
+          Instead of repeating a short passphrase, a stream cipher uses a deterministic <strong>Pseudorandom Generator (PRG)</strong> parameterized by a secret key <code>K</code> and optional initialization vector (<code>IV</code>) to produce an arbitrarily long <strong>keystream</strong> sequence (<code>S<sub>0</sub>, S<sub>1</sub>, S<sub>2</sub>...</code>).
+        </p>`,
+    },
+
+    {
+      kind: 'formula',
+      lines: [
+        'Keystream Generation:  S = PRG(K, IV)',
+        'Encryption:           C<sub>i</sub> = P<sub>i</sub> ⊕ S<sub>i</sub>',
+        'Decryption:           P<sub>i</sub> = C<sub>i</sub> ⊕ S<sub>i</sub>'
+      ],
+      note: 'Where P_i, C_i, and S_i represent the i-th byte (or bit) of the plaintext, ciphertext, and keystream.',
+    },
+
+    {
+      kind: 'text',
+      heading: 'h3',
+      title: 'The Catastrophic Flaw: Keystream Reuse (Two-Time Pad)',
+      html: `
+        <p class="ex-p">
+          Because XOR is self-inverting, encrypting two different messages <code>P<sub>1</sub></code> and <code>P<sub>2</sub></code> with the <strong>same keystream S</strong> completely destroys confidentiality:
+        </p>
+
+        <p class="ex-p">
+          <code>C<sub>1</sub> ⊕ C<sub>2</sub> = (P<sub>1</sub> ⊕ S) ⊕ (P<sub>2</sub> ⊕ S) = P<sub>1</sub> ⊕ P<sub>2</sub></code>
+        </p>
+
+        <p class="ex-p">
+          XORing two ciphertexts together cancels the keystream <code>S</code> entirely, leaving a direct XOR combination of the plaintexts <code>P<sub>1</sub> ⊕ P<sub>2</sub></code>. An attacker can easily exploit natural language properties (e.g., space character interactions in ASCII) to recover both plaintexts.
+        </p>`,
     },
   ],
 };

@@ -4,6 +4,7 @@ import { initChapterSystem } from "./chapter-engine.js";
 import chapter0 from "./chapters/info/index.js"
 import xorPages from "./chapters/xor/index.js";
 import caesarPages from "./chapters/caesar/index.js";
+import blockPages from "./chapters/blocks/index.js"
 
 function showScreen(id) {
     document.querySelectorAll(".screen").forEach(screen => {
@@ -21,7 +22,8 @@ export function initExercises(CircuitWasm) {
     const chapters = [
         ...chapter0,
         ...xorPages,
-        ...caesarPages
+        ...caesarPages,
+        ...blockPages,
     ];
 
     const listContainer = document.getElementById("exercise-list");
