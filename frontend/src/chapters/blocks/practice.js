@@ -176,7 +176,7 @@ export const blockCiphersPractice = {
         // ── Question 5: Meet-in-the-Middle Attack ─────────────────────────
         {
           num: '2.P5',
-          title: 'Double-DES Vulnerability (Meet-in-the-Middle)',
+          title: 'Double-DES Vulnerability',
           bodyHtml: `
             <p class="ex-p">
               Double-DES (2DES) encrypts data twice with two 56-bit keys: <code>C = E_K2(E_K1(P))</code>, giving a key space of 112 bits.

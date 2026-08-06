@@ -313,3 +313,92 @@
   font-size: 13px;
   color: var(--accent, #00f0ff);
 }
+/* PULC-256 Terminal Layout */
+.pulc-terminal-wrap {
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  overflow: hidden;
+  margin: 16px 0;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+
+.pulc-term-bar {
+  background: #161b22;
+  border-bottom: 1px solid #30363d;
+  padding: 8px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pulc-term-dots {
+  display: flex;
+  gap: 6px;
+}
+
+.pulc-term-dots .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+.pulc-term-dots .dot.red { background: #ff5f56; }
+.pulc-term-dots .dot.yellow { background: #ffbd2e; }
+.pulc-term-dots .dot.green { background: #27c93f; }
+
+.pulc-term-title {
+  font-size: 12px;
+  color: #8b949e;
+}
+
+.pulc-seed-display {
+  font-size: 12px;
+  color: #c9d1d9;
+}
+
+.yellow-text {
+  color: #e3b341;
+  font-weight: bold;
+}
+
+/* Terminal Log Area */
+.pulc-term-output {
+  height: 220px;
+  background: #0d1117;
+  padding: 12px 16px;
+  overflow-y: auto;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.term-line { margin-bottom: 4px; word-break: break-all; }
+.term-line.sys { color: #58a6ff; }     /* Blue */
+.term-line.info { color: #c9d1d9; }    /* Light Gray */
+.term-line.query { color: #8b949e; }   /* Darker Gray */
+.term-line.success { color: #3fb950; } /* Green */
+.term-line.error { color: #f85149; }   /* Red */
+
+/* Controls & Query Input */
+.pulc-term-controls {
+  padding: 10px 16px;
+  background: #161b22;
+  border-top: 1px solid #21262d;
+  display: flex;
+  gap: 10px;
+}
+
+.pulc-oracle-input-row {
+  padding: 10px 16px 14px 16px;
+  background: #161b22;
+  border-top: 1px solid #21262d;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.prompt-label {
+  color: #58a6ff;
+  font-weight: bold;
+  font-size: 13px;
+}
