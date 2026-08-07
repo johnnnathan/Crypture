@@ -116,7 +116,7 @@ mod tests {
 }
 
 #[wasm_bindgen]
-pub fn query_pulc_oracle(seed: u64, hex_input: &str) -> String {
+pub fn query_mini_des_oracle(seed: u64, hex_input: &str) -> String {
     let challenge = ChallengeStruct::generate(seed);
     if let Ok(raw_bytes) = hex::decode(hex_input) {
         if let Ok(text) = String::from_utf8(raw_bytes) {

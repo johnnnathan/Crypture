@@ -1,4 +1,4 @@
-import initWasm, { generate_mini_des_challenge, check_mini_des_challenge, query_pulc_oracle } from '../challenges_pkg/challenge_engine.js';
+import initWasm, { generate_mini_des_challenge, check_mini_des_challenge, query_mini_des_oracle } from '../challenges_pkg/challenge_engine.js';
 
 export const blockCiphersCTF = {
   id: 'pulc256-ctf',
@@ -102,8 +102,8 @@ export const blockCiphersCTF = {
 
         const loadChallengeData = () => {
           // Call Rust generate via Wasm (or fallback to local test generator if loading offline)
-          if (typeof generate_pulc_challenge === 'function') {
-            const data = generate_pulc_challenge(BigInt(currentSeed));
+          if (typeof generate_mini_des_challenge === 'function') {
+            const data = generate_mini_des_challenge(BigInt(currentSeed));
             interceptedCT = data.ciphertext;
           } else {
             // JS fallback stub for preview
@@ -137,8 +137,8 @@ export const blockCiphersCTF = {
 
           // Pass to Wasm Oracle query function
           let ctResult = '';
-          if (typeof query_pulc_oracle === 'function') {
-            ctResult = query_pulc_oracle(BigInt(currentSeed), raw);
+          if (typeof query_mini_des_oracle === 'function') {
+            ctResult = query_mini_des_oracle(BigInt(currentSeed), raw);
           } else {
             ctResult = '[WASM Oracle Offline]';
           }
@@ -187,8 +187,8 @@ export const blockCiphersCTF = {
           parse: (raw) => raw.trim(),
           check: (val) => {
             // Evaluate directly against Rust validation logic if Wasm is active
-            if (typeof check_pulc_challenge === 'function') {
-              return check_pulc_challenge(1337n, val);
+            if (typeof check_mini_des_challenge === 'function') {
+              return check_mini_des_challenge(1337n, val);
             }
             // Fallback string evaluation
             return val === 'CTF{b1ock_s1z3_m4tt3rs_m0r3_th4n_k3y_l3ngth!}'
