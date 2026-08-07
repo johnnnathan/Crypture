@@ -15,7 +15,7 @@ wasm-pack build --target web
 echo "Copying pkg to frontend..."
 
 # Copy and relocate the engine to be used by the front-end
-rm -rf "$ROOT_DIR/frontend/src/crypto_engine_pkg"
-cp -R pkg "$ROOT_DIR/frontend/src/crypto_engine_pkg"
+rm -rf "$ROOT_DIR/frontend/app/crypto_engine_pkg"
+cp -R pkg "$ROOT_DIR/frontend/app/crypto_engine_pkg"
 
 echo "Done!"
