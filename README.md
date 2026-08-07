@@ -28,7 +28,7 @@ Prerequisites to develop:
 │   ├── src             # Crypto-engine rust source code
 │   └── pkg             # Crypto-engine translated code using wasm-pack
 ├── frontend
-│   └── src             # Front-end source code
+│   └── app             # Front-end source code
 └── tools               # Variety of tools used during development
 
 ```
