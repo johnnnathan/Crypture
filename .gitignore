@@ -1,3 +1,5 @@
 topic_list.txt
 challenge-engine/target/
 crypto-engine/target/
+frontend/app/crypto_engine_pkg/
+frontend/app/chapters/challenges_pkg/
