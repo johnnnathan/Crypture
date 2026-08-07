@@ -182,7 +182,7 @@ export const blockCiphersCTF = {
           bodyHtml: `
             <p class="ex-p">Decrypt the intercepted payload by exploiting the structural properties of PULC-256 and enter the recovered flag string below.</p>
           `,
-          input: { type: 'text', placeholder: 'CTF{...}' },
+          input: { type: 'text', placeholder: 'FLAG{...}' },
           parse: (raw) => raw.trim(),
           check: (val) => check_mini_des_challenge(1337n, val),
         },

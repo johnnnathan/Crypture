@@ -23,11 +23,11 @@ impl ChallengeStruct {
         state
     }
 
-    /// Helper to encrypt arbitrary text under 1-byte ECB mode, outputting hex
-    pub fn encrypt_ecb(text: &str, key: &[u8]) -> String {
-        let hex_bytes: Vec<u8> = text
-            .bytes()
-            .map(|b| Self::encrypt_byte(b, key))
+    /// Helper to encrypt arbitrary raw bytes under 1-byte ECB mode, outputting hex
+    pub fn encrypt_ecb(bytes: &[u8], key: &[u8]) -> String {
+        let hex_bytes: Vec<u8> = bytes
+            .iter()
+            .map(|&b| Self::encrypt_byte(b, key))
             .collect();
 
         hex::encode(hex_bytes)
@@ -49,8 +49,8 @@ impl ChallengeStruct {
 impl Challenge for ChallengeStruct {
     fn generate(seed: u64) -> Self {
         let key = Self::derive_key(seed);
-        let flag = "CTF{b1ock_s1z3_m4tt3rs_m0r3_th4n_k3y_l3ngth!}".to_string();
-        let ciphertext = Self::encrypt_ecb(&flag, &key);
+        let flag = "FLAG{b1ock_s1z3_m4tt3rs_m0r3_th4n_k3y_l3ngth!}".to_string();
+        let ciphertext = Self::encrypt_ecb(flag.as_bytes(), &key);
 
         Self {
             seed,
@@ -118,10 +118,10 @@ mod tests {
 #[wasm_bindgen]
 pub fn query_mini_des_oracle(seed: u64, hex_input: &str) -> String {
     let challenge = ChallengeStruct::generate(seed);
+    // Decode the hex string directly into raw bytes
     if let Ok(raw_bytes) = hex::decode(hex_input) {
-        if let Ok(text) = String::from_utf8(raw_bytes) {
-            return ChallengeStruct::encrypt_ecb(&text, &challenge.key);
-        }
+        // Pass &[u8] directly without requiring String::from_utf8!
+        return ChallengeStruct::encrypt_ecb(&raw_bytes, &challenge.key);
     }
     "ERROR".to_string()
 }
