@@ -1,21 +1,18 @@
-import initWasm, { generate_mini_des_challenge, check_mini_des_challenge, query_mini_des_oracle } from '../challenges_pkg/challenge_engine.js';
+import { 
+  generate_mini_des_challenge, 
+  check_mini_des_challenge, 
+  query_mini_des_oracle 
+} from '../challenges_pkg/challenge_engine.js';
 
 export const blockCiphersCTF = {
   id: 'pulc256-ctf',
-  num: '04.1',
+  num: '03.3',
   tag: 'CTF Challenge',
   tagClass: 'ctf',
   title: 'Challenge — PULC-256 Codebook Oracle',
   desc: 'A fictional security firm claims their proprietary PULC-256 cipher is unbreakable due to its 256-bit key. Prove that block size matters more than key length.',
   concepts: ['Codebook Attack', 'Small Block Size', 'ECB Mode Weaknesses', 'Chosen Plaintext Attack'],
-  topbarTitle: 'Exercise 04 — PULC-256 CTF',
-
-  // Initialize WebAssembly on page mount
-  onMount: async (container) => {
-    if (typeof initWasm === 'function') {
-      await initWasm();
-    }
-  },
+  topbarTitle: 'Exercise 03 — PULC-256 CTF',
 
   blocks: [
     // ── 1. Story & Specification Banner ────────────────────────────────
@@ -81,7 +78,7 @@ export const blockCiphersCTF = {
         </div>
       `,
       init: (page) => {
-        let currentSeed = 1337;
+        let currentSeed = 1337n;
         let interceptedCT = null;
 
         const seedValEl = page.querySelector('#pulc-seed-val');
@@ -101,20 +98,29 @@ export const blockCiphersCTF = {
         };
 
         const loadChallengeData = () => {
-          // Call Rust generate via Wasm (or fallback to local test generator if loading offline)
-          if (typeof generate_mini_des_challenge === 'function') {
-            const data = generate_mini_des_challenge(BigInt(currentSeed));
-            interceptedCT = data.ciphertext;
-          } else {
-            // JS fallback stub for preview
-            interceptedCT = "ee1e9a3ab1b88e1e3f";
+          try {
+            const data = generate_mini_des_challenge(currentSeed);
+            
+            // Extract value safely depending on Rust Wasm export format (Map vs Object)
+            if (data && typeof data.get === 'function') {
+              interceptedCT = data.get('ciphertext');
+            } else if (data && data.ciphertext) {
+              interceptedCT = data.ciphertext;
+            } else {
+              interceptedCT = data;
+            }
+          } catch (err) {
+            console.error('Failed to generate challenge payload:', err);
+            appendLog('error', '[ERROR] Failed to fetch payload from crypto engine.');
           }
         };
 
         // 1. Get Intercepted Ciphertext
         btnGetCT.addEventListener('click', () => {
           if (!interceptedCT) loadChallengeData();
-          appendLog('info', `[INTERCEPT] Target Payload (hex): ${interceptedCT}`);
+          if (interceptedCT) {
+            appendLog('info', `[INTERCEPT] Target Payload (hex): ${interceptedCT}`);
+          }
         });
 
         // 2. Query Oracle
@@ -125,7 +131,6 @@ export const blockCiphersCTF = {
             return;
           }
 
-          // Validate Hex Format (Even length and valid characters 0-9a-f)
           if (!/^[0-9a-f]+$/i.test(raw)) {
             appendLog('error', '[REJECTED] Invalid input: Must be a valid hexadecimal string.');
             return;
@@ -135,13 +140,7 @@ export const blockCiphersCTF = {
             return;
           }
 
-          // Pass to Wasm Oracle query function
-          let ctResult = '';
-          if (typeof query_mini_des_oracle === 'function') {
-            ctResult = query_mini_des_oracle(BigInt(currentSeed), raw);
-          } else {
-            ctResult = '[WASM Oracle Offline]';
-          }
+          const ctResult = query_mini_des_oracle(currentSeed, raw);
 
           appendLog('query', `> Input:  ${raw}`);
           appendLog('success', `< Output: ${ctResult}`);
@@ -155,8 +154,8 @@ export const blockCiphersCTF = {
 
         // 3. Reroll Seed
         btnReroll.addEventListener('click', () => {
-          currentSeed = Math.floor(Math.random() * 899999) + 100000;
-          seedValEl.textContent = currentSeed;
+          currentSeed = BigInt(Math.floor(Math.random() * 899999) + 100000);
+          seedValEl.textContent = currentSeed.toString();
           interceptedCT = null;
           appendLog('sys', `[SYSTEM] Session reset. New seed generated: ${currentSeed}`);
           loadChallengeData();
@@ -167,7 +166,7 @@ export const blockCiphersCTF = {
           termLog.innerHTML = '<div class="term-line sys">[SYSTEM] Terminal buffer cleared.</div>';
         });
 
-        // Initial setup
+        // Preload initial challenge data
         loadChallengeData();
       },
     },
@@ -185,22 +184,7 @@ export const blockCiphersCTF = {
           `,
           input: { type: 'text', placeholder: 'CTF{...}' },
           parse: (raw) => raw.trim(),
-          check: (val) => {
-            // Evaluate directly against Rust validation logic if Wasm is active
-            if (typeof check_mini_des_challenge === 'function') {
-              return check_mini_des_challenge(1337n, val);
-            }
-            // Fallback string evaluation
-            return val === 'CTF{b1ock_s1z3_m4tt3rs_m0r3_th4n_k3y_l3ngth!}'
-              ? {
-                  correct: true,
-                  message: '🎉 Access Granted! You exploited the 1-byte block size using a codebook attack!',
-                }
-              : {
-                  correct: false,
-                  message: "Incorrect flag. Remember: You don't need the 256-bit key! Build a 256-entry codebook.",
-                };
-          },
+          check: (val) => check_mini_des_challenge(1337n, val),
         },
       ],
     },

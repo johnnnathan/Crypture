@@ -1,5 +1,6 @@
 // main.js — App bootstrap & screen router
-import init, { CircuitWasm } from './crypto_engine_pkg/crypto_engine.js';
+import initCryptoEngine, { CircuitWasm } from './crypto_engine_pkg/crypto_engine.js';
+import initChallengeEngine from './chapters/challenges_pkg/challenge_engine.js';
 import { Sandbox } from './sandbox.js';
 import { initExercises } from './exercises.js';
 
@@ -14,16 +15,22 @@ function showScreen(id) {
 async function initEngine() {
   const statusLed  = document.getElementById('wasm-status-led');
   const statusText = document.getElementById('wasm-status-text');
+  
   try {
-    await init();
+    // Concurrently boot both Wasm engines
+    await Promise.all([
+      initCryptoEngine(),
+      initChallengeEngine()
+    ]);
+
     circuit = new CircuitWasm('CryptureEngine');
     statusLed.classList.add('ready');
     statusText.textContent = 'engine ready';
 
     // Unlock nav cards
-    document.getElementById('btn-open-sandbox').style.opacity   = '1';
+    document.getElementById('btn-open-sandbox').style.opacity       = '1';
     document.getElementById('btn-open-sandbox').style.pointerEvents = 'auto';
-    document.getElementById('btn-open-exercises').style.opacity = '1';
+    document.getElementById('btn-open-exercises').style.opacity     = '1';
     document.getElementById('btn-open-exercises').style.pointerEvents = 'auto';
 
     // Boot exercises — each gets its own CircuitWasm instance internally
@@ -91,9 +98,10 @@ document.addEventListener('DOMContentLoaded', () => {
   initEngine();
 
   document.getElementById("btn-back-from-exercises")
-  .addEventListener("click", () => {
+    .addEventListener("click", () => {
       showScreen("screen-menu");
-  });
+    });
+
   document.getElementById('btn-open-sandbox').addEventListener('click', () => {
     if (!circuit) return;
     showScreen('screen-sandbox');

@@ -1,8 +1,5 @@
 import { hex, bin } from '../../exercise-kit.js';
-import initWasm, { generate_caesar_drift_challenge, check_caesar_drift_challenge } from '../challenges_pkg/challenge_engine.js';
-
-let challengeData = null;
-let isWasmReady = false;
+import { generate_caesar_drift_challenge, check_caesar_drift_challenge } from '../challenges_pkg/challenge_engine.js';
 
 export const caesarCtf = {
     id: 'caesar-ctf',
@@ -13,22 +10,6 @@ export const caesarCtf = {
     desc: 'A rogue agent intercepted a stream encrypted with a modified Caesar cipher that shifts dynamically based on character index.',
     concepts: ['Polyalphabetic Shift', 'Positional Drift', 'Modular Arithmetic'],
     topbarTitle: 'Exercise 02 — Caesar CTF',
-
-    onMount: async () => {
-        if (!isWasmReady) {
-            await initWasm();
-            isWasmReady = true;
-            
-            challengeData = generate_caesar_drift_challenge(0n);
-            
-            const banner = document.getElementById('caesar-ciphertext-banner');
-            if (banner) {
-                // Extract using .get() for Map objects
-                const ct = challengeData.get('ciphertext');
-                banner.textContent = `Ciphertext: ${ct}`;
-            }
-        }
-    },
 
     blocks: [
       {
@@ -89,8 +70,9 @@ export const caesarCtf = {
             title: 'Break the Modified Vigenère Cipher',
             
             renderBody: () => {
-                // Extract using .get() if available, fallback gracefully
-                const ct = challengeData ? challengeData.get('ciphertext') : 'Loading ciphertext...';
+                // Direct call to WASM module
+                const challengeData = generate_caesar_drift_challenge(0n);
+                const ct = challengeData.get('ciphertext');
 
                 return `
                   <p class="ex-p">
@@ -113,15 +95,8 @@ export const caesarCtf = {
 
             parse: (raw) => raw.trim().toUpperCase(),
 
-            check: (val) => {
-                if (!isWasmReady) {
-                    return {
-                        correct: false,
-                        message: "Challenge engine is still loading. Please try again."
-                    };
-                }
-                return check_caesar_drift_challenge(0n, val);
-            },
+            // Direct check with WASM function
+            check: (val) => check_caesar_drift_challenge(0n, val),
           },
         ],
       },
