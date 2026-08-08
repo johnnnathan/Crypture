@@ -147,7 +147,7 @@ impl ChallengeStruct {
 impl Challenge for ChallengeStruct {
     fn generate(seed: u64) -> Self {
         let (key, nonce) = Self::derive_params(seed);
-        let flag = "CTF{c1ph3r_t3xt_dr4gg1ng_4nd_c0unt3r_1n_sync!}".to_string();
+        let flag = "FLAG{c1ph3r_t3xt_dr4gg1ng_4nd_c0unt3r_1n_sync!}".to_string();
 
         let target_plaintext = Self::build_target_plaintext(seed, &flag);
         

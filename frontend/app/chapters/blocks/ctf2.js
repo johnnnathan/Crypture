@@ -173,7 +173,7 @@ export const ctrCtf = {
           bodyHtml: `
             <p class="ex-p">Recover the keystream from the encryption oracle output, decrypt the target memorandum, and enter the recovered flag string below.</p>
           `,
-          input: { type: 'text', placeholder: 'CTF{...}' },
+          input: { type: 'text', placeholder: 'FLAG{...}' },
           parse: (raw) => raw.trim(),
           check: (val) => check_ctr_ttp_challenge(1337n, val),
         },
