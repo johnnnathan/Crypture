@@ -5,11 +5,10 @@ const MAX_ORACLE_LEN: usize = 4096;
 
 pub struct ChallengeStruct {
     pub seed: u64,
-    pub ciphertext: String, // Kept for macro/codegen compatibility!
+    pub ciphertext: String, // Target ciphertext hex for macro/codegen compatibility
     pub flag: String,
     key: [u8; 16],
     nonce: u64,
-    counter_offset: u32,
     target_ciphertext_bytes: Vec<u8>,
 }
 
@@ -23,8 +22,7 @@ impl ChallengeStruct {
         for (i, byte) in stream_block.iter_mut().enumerate() {
             *byte ^= key[i % key.len()].wrapping_add(i as u8);
             *byte = byte.wrapping_mul(31).wrapping_add(17);
-            // FIXED: Dereferenced *byte on both shift operations
-            *byte = (*byte << 3) | (*byte >> 5);
+            *byte = (*byte << 3) | (*byte >> 5); // Dereferenced correctly
         }
         stream_block
     }
@@ -40,7 +38,7 @@ impl ChallengeStruct {
         ciphertext
     }
 
-    fn derive_params(seed: u64) -> ([u8; 16], u64, u32) {
+    fn derive_params(seed: u64) -> ([u8; 16], u64) {
         let mut key = [0u8; 16];
         let mut state = seed;
         for byte in key.iter_mut() {
@@ -51,9 +49,7 @@ impl ChallengeStruct {
         }
 
         let nonce = state ^ 0xDEADBEEFCAFEBABEu64;
-        let counter_offset = ((state >> 16) % 512) as u32 + 32;
-
-        (key, nonce, counter_offset)
+        (key, nonce)
     }
 
     fn hex_encode(bytes: &[u8]) -> String {
@@ -79,6 +75,7 @@ impl ChallengeStruct {
         Ok(out)
     }
 
+    /// Oracle encrypts starting at counter 0 (Reused Nonce Vulnerability)
     pub fn oracle_encrypt_hex(&self, hex: &str) -> Result<String, String> {
         let plaintext = Self::hex_decode(hex)?;
         if plaintext.is_empty() {
@@ -87,7 +84,8 @@ impl ChallengeStruct {
         if plaintext.len() > MAX_ORACLE_LEN {
             return Err(format!("plaintext too long (max {} bytes)", MAX_ORACLE_LEN));
         }
-        let ciphertext = Self::encrypt_ctr(&plaintext, &self.key, self.nonce, self.counter_offset);
+        // Starts at counter 0 just like the target payload!
+        let ciphertext = Self::encrypt_ctr(&plaintext, &self.key, self.nonce, 0);
         Ok(Self::hex_encode(&ciphertext))
     }
 
@@ -148,21 +146,19 @@ impl ChallengeStruct {
 
 impl Challenge for ChallengeStruct {
     fn generate(seed: u64) -> Self {
-        let (key, nonce, counter_offset) = Self::derive_params(seed);
+        let (key, nonce) = Self::derive_params(seed);
         let flag = "CTF{c1ph3r_t3xt_dr4gg1ng_4nd_c0unt3r_1n_sync!}".to_string();
 
         let target_plaintext = Self::build_target_plaintext(seed, &flag);
-        let target_ciphertext_bytes =
-            Self::encrypt_ctr(target_plaintext.as_bytes(), &key, nonce, 0);
-
-        // Convert to hex so the macro can automatically pick up `instance.ciphertext`
+        
+        // Target starts at counter 0
+        let target_ciphertext_bytes = Self::encrypt_ctr(target_plaintext.as_bytes(), &key, nonce, 0);
         let ciphertext = Self::hex_encode(&target_ciphertext_bytes);
 
         Self {
             seed,
             key,
             nonce,
-            counter_offset,
             target_ciphertext_bytes,
             ciphertext,
             flag,
@@ -179,85 +175,21 @@ impl Challenge for ChallengeStruct {
         if clean_input == self.flag {
             ValidationResult {
                 correct: true,
-                message:
-                    "🎉 Access Granted! You sliding-window aligned the keystream offset and recovered the flag!"
-                        .to_string(),
+                message: "🎉 Access Granted! You exploited the static CTR nonce and recovered the flag!".to_string(),
             }
         } else {
             ValidationResult {
                 correct: false,
-                message: "Incorrect flag. Remember to slide the recovered keystream across the target ciphertext looking for readable English.".to_string(),
+                message: "Incorrect flag. Remember: Keystream = Oracle_Ciphertext XOR Known_Plaintext.".to_string(),
             }
         }
     }
 }
-
 #[wasm_bindgen]
 pub fn query_ctr_ttp_oracle(seed: u64, hex_input: &str) -> String {
     let challenge = ChallengeStruct::generate(seed);
     match challenge.oracle_encrypt_hex(hex_input) {
         Ok(ct_hex) => ct_hex,
         Err(err) => format!("ERROR: {}", err),
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_ctr_keystream_alignment_solver() {
-        let challenge = ChallengeStruct::generate(1337);
-
-        // 1. Student requests 512 bytes of known plaintext 'A' from Oracle
-        let known_plaintext = vec![b'A'; 512];
-        let known_hex = ChallengeStruct::hex_encode(&known_plaintext);
-        let oracle_ct_hex = challenge
-            .oracle_encrypt_hex(&known_hex)
-            .expect("oracle call should succeed");
-        let oracle_ct = ChallengeStruct::hex_decode(&oracle_ct_hex).expect("valid hex");
-
-        // 2. Recover floating keystream fragment: K_oracle = C ^ P
-        let oracle_keystream: Vec<u8> = oracle_ct
-            .iter()
-            .zip(known_plaintext.iter())
-            .map(|(&c, &p)| c ^ p)
-            .collect();
-
-        let target_ct =
-            ChallengeStruct::hex_decode(&challenge.target_ciphertext_hex()).expect("valid hex");
-
-        // 3. SLIDING WINDOW ATTACK:
-        // Slide the recovered 512-byte keystream across the target ciphertext (block offsets 0..1024)
-        let mut recovered_flag = String::new();
-
-        for byte_offset in (0..target_ct.len().saturating_sub(oracle_keystream.len())).step_by(16) {
-            let target_slice = &target_ct[byte_offset..byte_offset + oracle_keystream.len()];
-            
-            // Decrypt slice with floating keystream
-            let decrypted_bytes: Vec<u8> = target_slice
-                .iter()
-                .zip(oracle_keystream.iter())
-                .map(|(&c, &k)| c ^ k)
-                .collect();
-
-            let decrypted_text = String::from_utf8_lossy(&decrypted_bytes);
-
-            // Look for readable markers / flag pattern
-            if decrypted_text.contains("FLAG:") || decrypted_text.contains("CTF{") {
-                if let Some(start) = decrypted_text.find("CTF{") {
-                    if let Some(end) = decrypted_text[start..].find('}') {
-                        recovered_flag = decrypted_text[start..=start + end].to_string();
-                        break;
-                    }
-                }
-            }
-        }
-
-        assert_eq!(recovered_flag, challenge.flag);
-
-        // 4. Verify answer checking
-        let check_res = challenge.check(&recovered_flag);
-        assert!(check_res.correct);
     }
 }

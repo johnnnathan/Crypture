@@ -5,14 +5,20 @@ import {
 } from '../challenges_pkg/challenge_engine.js';
 
 export const ctrCtf = {
-  id: 'ctr-alignment-ctf',
+  id: 'ctr-nonce-reuse-ctf',
   num: '03.4',
   tag: 'CTF Challenge',
   tagClass: 'ctf',
-  title: 'Challenge — HELIOS CTR Nonce & Counter Alignment',
-  desc: 'A compromised satellite subsystem uses CTR mode with a fixed nonce and counter offset. Recover the floating keystream and slide it across the target document to reveal the flag.',
-  concepts: ['CTR Mode', 'Nonce Reuse', 'Two-Time Pad', 'Counter Offset Alignment', 'Chosen Plaintext Attack'],
-  topbarTitle: 'Exercise 03.4 — CTR Nonce Alignment CTF',
+  title: 'Challenge — HELIOS: The Reused Nonce',
+  desc: 'A compromised satellite subsystem uses CTR mode with a reused static nonce. Recover the keystream using the chosen-plaintext encryption oracle to decrypt the intercepted memorandum.',
+  concepts: [
+    'CTR Mode',
+    'Nonce Reuse',
+    'Two-Time Pad',
+    'Chosen Plaintext Attack',
+    'Keystream Recovery'
+  ],
+  topbarTitle: 'Exercise 03.4 — CTR Nonce Reuse CTF',
 
   blocks: [
     // ── 1. Story & Specification Banner ────────────────────────────────
@@ -22,7 +28,7 @@ export const ctrCtf = {
       title: 'Intercepted Satellite Telemetry',
       html: `
         <p class="ex-p">During an orbital pass, your team intercepted an encrypted internal memorandum from Project <strong>HELIOS</strong>. The communications module uses CTR mode encryption.</p>
-        <p class="ex-p">Security analysis reveals that the target system reuses a fixed static <code>Nonce</code> across all telemetry operations. Furthermore, the telemetry encryption oracle generates keystream starting from a secret static <code>counter_offset</code>, whereas the captured target memo was encrypted starting at counter <code>0</code>.</p>
+        <p class="ex-p">Reverse-engineering the diagnostic console reveals that the system generates keystream blocks starting at counter <code>0</code> using a static <code>Nonce</code> that never changes between transmissions.</p>
       `,
     },
     {
@@ -30,11 +36,12 @@ export const ctrCtf = {
       lines: [
         '[SYSTEM SPECIFICATION: HELIOS-CTR-v2]',
         'Cipher Mode:   Counter Mode (CTR)',
-        'Key & Nonce:   Fixed & Reused across all communications',
-        'Target Payload: Encrypted starting at Counter = 0',
-        'Oracle Input:   Encrypted starting at Counter = counter_offset'
+        'Key Length:    128 bits',
+        'Nonce:         Fixed & Reused',
+        'Target:        Encrypted from Counter = 0',
+        'Oracle:        Chosen-Plaintext Encryption'
       ],
-      note: 'XOR your chosen plaintext with oracle output to recover the floating keystream, then slide it across the target ciphertext until readable text appears.',
+      note: 'Inspect the relationship between the oracle output and the intercepted ciphertext.',
     },
 
     // ── 2. Terminal & Oracle UI ─────────────────────────────────────────
@@ -51,9 +58,6 @@ export const ctrCtf = {
               <span class="dot green"></span>
             </div>
             <div class="pulc-term-title">helios-tty2 — telemetry@satcom.local</div>
-            <div class="pulc-seed-display">
-              Seed: <span id="ctr-seed-val" class="yellow-text">1337</span>
-            </div>
           </div>
 
           <div class="pulc-term-output" id="ctr-term-log">
@@ -64,26 +68,23 @@ export const ctrCtf = {
 
           <div class="pulc-term-controls">
             <button id="btn-get-ctr-ciphertext" class="ex-btn">Get Target Ciphertext</button>
-            <button id="btn-reroll-ctr-seed" class="ex-btn-secondary">🎲 Reroll Seed</button>
             <button id="btn-clear-ctr-term" class="ex-btn-secondary">Clear Terminal</button>
           </div>
 
           <div class="pulc-oracle-input-row">
             <span class="prompt-label">telemetry_query#</span>
-            <input id="ctr-oracle-input" type="text" class="ex-hex-input" placeholder="e.g. 41414141... (hex plaintext)" maxlength="8192" />
+            <input id="ctr-oracle-input" type="text" class="ex-hex-input" placeholder="e.g. 00000000... or 41414141... (hex plaintext)" maxlength="8192" />
             <button id="btn-query-ctr-oracle" class="ex-btn">Encrypt</button>
           </div>
         </div>
       `,
       init: (page) => {
-        let currentSeed = 1337n;
+        const CURRENT_SEED = 1337n;
         let targetCT = null;
 
-        const seedValEl = page.querySelector('#ctr-seed-val');
         const termLog = page.querySelector('#ctr-term-log');
         const inputOracle = page.querySelector('#ctr-oracle-input');
         const btnGetCT = page.querySelector('#btn-get-ctr-ciphertext');
-        const btnReroll = page.querySelector('#btn-reroll-ctr-seed');
         const btnQuery = page.querySelector('#btn-query-ctr-oracle');
         const btnClear = page.querySelector('#btn-clear-ctr-term');
 
@@ -97,7 +98,7 @@ export const ctrCtf = {
 
         const loadChallengeData = () => {
           try {
-            const data = generate_ctr_ttp_challenge(currentSeed);
+            const data = generate_ctr_ttp_challenge(CURRENT_SEED);
             if (data && typeof data.get === 'function') {
               targetCT = data.get('ciphertext');
             } else if (data && data.ciphertext) {
@@ -111,12 +112,12 @@ export const ctrCtf = {
           }
         };
 
-        // 1. Fetch Target Payload
+        // 1. Fetch Full Target Payload
         btnGetCT.addEventListener('click', () => {
           if (!targetCT) loadChallengeData();
           if (targetCT) {
-            appendLog('info', `[CAPTURED PAYLOAD] Length: ${targetCT.length / 2} bytes`);
-            appendLog('info', `[HEX]: ${targetCT.substring(0, 128)}...`);
+            appendLog('info', `[CAPTURED PAYLOAD] Total Length: ${targetCT.length / 2} bytes`);
+            appendLog('success', `[FULL TARGET HEX]:\n${targetCT}`);
           }
         });
 
@@ -132,14 +133,15 @@ export const ctrCtf = {
             return;
           }
           if (raw.length % 2 !== 0) {
-            appendLog('error', '[REJECTED] Hex string must have an even length.');
+            appendLog('error', '[REJECTED] Hex string must have an even number of characters.');
             return;
           }
 
           try {
-            const ctResult = query_ctr_ttp_oracle(currentSeed, raw);
-            appendLog('query', `> Input (${raw.length / 2} B): ${raw.substring(0, 64)}${raw.length > 64 ? '...' : ''}`);
-            appendLog('success', `< Output: ${ctResult.substring(0, 64)}${ctResult.length > 64 ? '...' : ''}`);
+            const ctResult = query_ctr_ttp_oracle(CURRENT_SEED, raw);
+            
+            appendLog('query', `> Input (${raw.length / 2} bytes): ${raw}`);
+            appendLog('success', `< Output (${ctResult.length / 2} bytes):\n${ctResult}`);
           } catch (e) {
             appendLog('error', `[ERROR] Oracle call failed: ${e}`);
           }
@@ -151,16 +153,7 @@ export const ctrCtf = {
           if (e.key === 'Enter') runQuery();
         });
 
-        // 3. Reroll Seed
-        btnReroll.addEventListener('click', () => {
-          currentSeed = BigInt(Math.floor(Math.random() * 899999) + 100000);
-          seedValEl.textContent = currentSeed.toString();
-          targetCT = null;
-          appendLog('sys', `[SYSTEM] Session reset. New seed: ${currentSeed}`);
-          loadChallengeData();
-        });
-
-        // 4. Clear Terminal Log
+        // 3. Clear Terminal Log
         btnClear.addEventListener('click', () => {
           termLog.innerHTML = '<div class="term-line sys">[SYSTEM] Terminal buffer cleared.</div>';
         });
@@ -178,7 +171,7 @@ export const ctrCtf = {
           num: '4.CTF',
           title: 'Recover the Plaintext Flag',
           bodyHtml: `
-            <p class="ex-p">Align the floating keystream fragment against the target payload to decrypt the memo and recover the flag.</p>
+            <p class="ex-p">Recover the keystream from the encryption oracle output, decrypt the target memorandum, and enter the recovered flag string below.</p>
           `,
           input: { type: 'text', placeholder: 'CTF{...}' },
           parse: (raw) => raw.trim(),
