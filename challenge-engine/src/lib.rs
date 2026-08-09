@@ -2,6 +2,7 @@ pub mod traits;
 pub mod caesar_drift;
 pub mod mini_des;
 pub mod ctr_ttp;
+pub mod baat;
 
 pub use traits::Challenge;
 use wasm_bindgen::prelude::*;
