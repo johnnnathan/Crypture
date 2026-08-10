@@ -85,6 +85,7 @@ function renderExerciseItem(chapter, blockIdx, item, idx) {
       return opt;
     });
 
+
     inputHtml = `
       <div class="ex-radio-group" id="${uid}-group" style="display: flex; flex-direction: column; gap: 8px; margin: 12px 0;">
         ${options.map((o, i) => `
@@ -123,6 +124,7 @@ function renderExerciseItem(chapter, blockIdx, item, idx) {
     </div>
   </div>`;
 }
+
 
 function renderExerciseGroupBlock(chapter, blockIdx, b) {
   const items = b.items.map((item, idx) => renderExerciseItem(chapter, blockIdx, item, idx)).join('');
