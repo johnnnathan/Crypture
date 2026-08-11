@@ -12,7 +12,7 @@ use wasm_bindgen::prelude::*;
 type Aes128CbcEnc = cbc::Encryptor<Aes128>;
 type Aes128CbcDec = cbc::Decryptor<Aes128>;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct BitflipPayload {
     pub ciphertext: String,
     pub iv_hex: String,
@@ -154,4 +154,119 @@ pub fn check_aes_bitflip(seed: u64, ct_hex: &str, iv_hex: &str) -> JsValue {
     let challenge = ChallengeStruct::generate(seed);
     let result = challenge.check_ciphertext(ct_hex, iv_hex);
     serde_wasm_bindgen::to_value(&result).unwrap()
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const TEST_SEED: u64 = 1337;
+
+    #[test]
+    fn test_sanitizer_blocks_forbidden_input() {
+        let challenge = ChallengeStruct::generate(TEST_SEED);
+        
+        // Attempting to encrypt forbidden string directly should fail
+        let result = challenge.encrypt_user_input("admin=true");
+        assert!(result.is_err());
+        assert_eq!(
+            result.unwrap_err(),
+            "Forbidden substring 'admin=true' detected in input!"
+        );
+    }
+
+    #[test]
+    fn test_valid_input_encryption() {
+        let challenge = ChallengeStruct::generate(TEST_SEED);
+        
+        // Normal payload should succeed
+        let res = challenge.encrypt_user_input("adminXtrue").unwrap();
+        
+        assert!(!res.ciphertext.is_empty());
+        assert_eq!(res.iv_hex.len(), 32); // 16-byte IV in hex
+    }
+
+    #[test]
+    fn test_unmodified_ciphertext_rejection() {
+        let challenge = ChallengeStruct::generate(TEST_SEED);
+        
+        // Encrypt dummy string
+        let payload = challenge.encrypt_user_input("adminXtrue").unwrap();
+        
+        // Submit without bit-flipping
+        let result = challenge.check_ciphertext(&payload.ciphertext, &payload.iv_hex);
+        
+        assert!(!result.correct);
+        assert!(result.message.contains("Decrypted plaintext does not contain 'admin=true'"));
+    }
+
+    #[test]
+    fn test_bitflip_attack_success() {
+        let challenge = ChallengeStruct::generate(TEST_SEED);
+        
+        // 1. Encrypt target input with 'X' as a placeholder for '='
+        let payload = challenge.encrypt_user_input("adminXtrue").unwrap();
+        
+        let mut ct_bytes = hex::decode(&payload.ciphertext).expect("Valid hex string");
+        
+        // 2. Perform the bit-flip in Block 1
+        // Prefix length = 32 bytes (Blocks 0 & 1)
+        // User input starts at Block 2 (byte 32)
+        // Target character 'X' is at index 5 of Block 2 (byte 37 overall)
+        // To modify byte 37, flip bit in previous block: byte (37 - 16) = byte 21
+        let target_byte_idx = 21;
+        let delta = b'X' ^ b'='; // 0x58 ^ 0x3D = 0x65
+        
+        ct_bytes[target_byte_idx] ^= delta;
+        
+        let forged_ct_hex = hex::encode(ct_bytes);
+        
+        // 3. Verify forged ciphertext
+        let result = challenge.check_ciphertext(&forged_ct_hex, &payload.iv_hex);
+        
+        assert!(result.correct, "Bitflip validation failed: {}", result.message);
+        assert!(result.message.contains("Success!"));
+    }
+
+    #[test]
+    fn test_invalid_hex_handling() {
+        let challenge = ChallengeStruct::generate(TEST_SEED);
+        
+        // Malformed hex strings
+        let res1 = challenge.check_ciphertext("not_a_hex_string", "00112233445566778899aabbccddeeff");
+        assert!(!res1.correct);
+        assert_eq!(res1.message, "Invalid hex in ciphertext.");
+
+        let res2 = challenge.check_ciphertext("00112233445566778899aabbccddeeff", "invalid_iv");
+        assert!(!res2.correct);
+        assert_eq!(res2.message, "Invalid hex in IV.");
+    }
+
+    #[test]
+    fn test_invalid_iv_length() {
+        let challenge = ChallengeStruct::generate(TEST_SEED);
+        let payload = challenge.encrypt_user_input("hello").unwrap();
+        
+        // Short IV (8 bytes instead of 16)
+        let result = challenge.check_ciphertext(&payload.ciphertext, "0011223344556677");
+        
+        assert!(!result.correct);
+        assert_eq!(result.message, "IV must be exactly 16 bytes.");
+    }
+
+    #[test]
+    fn test_corrupted_padding_rejection() {
+        let challenge = ChallengeStruct::generate(TEST_SEED);
+        let payload = challenge.encrypt_user_input("hello").unwrap();
+        
+        let mut ct_bytes = hex::decode(&payload.ciphertext).unwrap();
+        
+        // Truncate the ciphertext (breaking PKCS#7 block alignment)
+        ct_bytes.truncate(ct_bytes.len() - 8);
+        let truncated_hex = hex::encode(ct_bytes);
+        
+        let result = challenge.check_ciphertext(&truncated_hex, &payload.iv_hex);
+        
+        assert!(!result.correct);
+        assert_eq!(result.message, "Decryption failed (bad padding).");
+    }
 }
