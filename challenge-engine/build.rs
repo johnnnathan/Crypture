@@ -16,7 +16,8 @@ fn main() {
         if path.extension().and_then(|s| s.to_str()) == Some("rs") {
             let filename = path.file_stem().unwrap().to_str().unwrap();
             
-            if filename == "lib" || filename == "traits" {
+            // Skip lib, traits, and any files starting with "h_"
+            if filename == "lib" || filename == "traits" || filename.starts_with("h_") {
                 continue;
             }
 
