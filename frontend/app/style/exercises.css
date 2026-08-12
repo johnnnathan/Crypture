@@ -35,23 +35,59 @@
 .ex-list-cards { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 800px; }
 
 .ex-list-card {
-  display: flex; align-items: center;
-  background: var(--bg-surface); border: 1px solid var(--border-mid);
-  border-radius: 4px; cursor: pointer; overflow: hidden;
+  display: flex; 
+  align-items: center;
+  background: var(--bg-surface); 
+  border: 1px solid var(--border-mid);
+  border-radius: 4px; 
+  cursor: pointer; 
+  overflow: hidden;
   transition: border-color 0.2s, background 0.2s, transform 0.15s;
 }
-.ex-list-card:hover { background: var(--bg-raised); border-color: var(--border-hi); transform: translateX(4px); }
 
-.ex-card-num {
-  font-family: var(--font-display); font-size: 28px; font-weight: 900;
-  color: var(--border-hi); padding: 24px 20px; flex-shrink: 0;
-  border-right: 1px solid var(--border-dim); min-width: 72px; text-align: center;
+.ex-list-card:hover { 
+  background: var(--bg-raised); 
+  border-color: var(--border-hi); 
+  transform: translateX(4px); 
 }
-.ex-card-color { width: 3px; align-self: stretch; flex-shrink: 0; }
+
+/* Fix: Enforce exact width and box-sizing on the number box */
+.ex-card-num {
+  font-family: var(--font-display); 
+  font-size: 24px; /* Reduced slightly so 4-character numbers like "01.3" fit cleanly */
+  font-weight: 900;
+  color: var(--border-hi); 
+  
+  /* Fixed width geometry */
+  width: 90px;
+  min-width: 90px;
+  max-width: 90px;
+  box-sizing: border-box;
+  padding: 20px 8px; /* Reduced horizontal padding to prevent overflow */
+  
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+/* Fix: Make sure the vertical colored bar stays tight and full-height */
+.ex-card-color { 
+  width: 3px; 
+  min-width: 3px;
+  align-self: stretch; 
+  flex-shrink: 0; 
+}
+
 .ex-card-color.xor    { background: var(--xor); }
 .ex-card-color.caesar { background: var(--caesar); }
 .ex-card-color.sbox   { background: var(--sbox); }
-.ex-card-body { padding: 20px 24px; flex: 1; }
+
+.ex-card-body { 
+  padding: 20px 24px; 
+  flex: 1; 
+}
 .ex-card-tag {
   display: inline-block; font-size: 9px; padding: 2px 8px;
   border-radius: 2px; font-weight: 500; letter-spacing: 1px;

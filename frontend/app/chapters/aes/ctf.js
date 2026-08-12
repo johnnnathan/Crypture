@@ -6,93 +6,112 @@ export const aesBitflipCtf = {
   tag: 'CTF Challenge',
   tagClass: 'aes',
   title: 'Challenge — AES-CBC Bit Flipping',
-  desc: 'Exploit CBC mode malleability to inject admin=true into the plaintext without knowing the key.',
+  desc: 'Exploit CBC mode malleability to inject "admin=true" into the plaintext without knowing the secret key.',
   concepts: ['AES-CBC', 'Malleability', 'Bit-Flipping Attack', 'Block Alignment'],
 
-  onMount: async () => { await initWasm(); },
+  onMount: async () => { 
+    await initWasm(); 
+  },
 
   blocks: [
     {
       kind: 'text',
       heading: 'h2',
-      title: 'Target Encryption Function',
+      title: 'Target System Overview',
       html: `
-        <p class="ex-p">The server constructs plaintext as <code>prefix || user_input || suffix</code>. It sanitizes input by refusing any string containing <code>admin=true</code>.</p>
-        <p class="ex-p">Because CBC mode satisfies <code>P<sub>i</sub> = D(C<sub>i</sub>) &oplus; C<sub>i-1</sub></code>, flipping bits in ciphertext block <code>C<sub>i-1</sub></code> directly flips the corresponding bits in plaintext block <code>P<sub>i</sub></code>!</p>
+        <p class="ex-p">The system encrypts payloads using AES-128-CBC. Direct user input containing <code>admin=true</code> is rejected prior to encryption.</p>
+        <p class="ex-p">The static prefix is <code>comment1=cooking%20MCs;userdata=</code> (exactly 32 bytes / 2 full blocks). Encrypt a target string using the oracle, then modify the returned ciphertext to force <code>admin=true</code> upon decryption.</p>
+        <blockquote class="ex-p" style="border-left: 3px solid #f59e0b; padding-left: 12px; margin-top: 12px; color: #cbd5e1;">
+          <strong>Note on Block Corruption:</strong> Modifying byte index <i>j</i> in ciphertext block <code>C₁</code> will completely randomize plaintext block <code>P₁</code>, but will precisely flip the targeted bit at index <i>j</i> in plaintext block <code>P₂</code>. This partial corruption is expected behavior in CBC bit-flipping attacks!
+        </blockquote>
       `,
     },
     {
       kind: 'formula',
       lines: [
-        'Prefix Length:  32 Bytes (Exactly 2 Blocks)',
-        'Target Input:   "adminXtrue" (Flip byte X at offset 5)',
-        'Bitflip Rule:   C_{i-1}[k] ^= ( X ^ = )'
+        'Prefix Length : 32 Bytes (Block 0 & Block 1)',
+        'Payload Start : Byte Index 32 (Start of Block 2)',
+        'Target Input  : "adminXtrue" (X is at payload offset 5 → byte index 37)',
+        'Bitflip Target: Modify C_1[5] (Byte 21) via C_1[5] ⊕= (\'X\' ⊕ \'=\')'
       ],
-      note: 'Flipping bit k in ciphertext block N corrupts block N plaintext, but cleanly modifies block N+1 plaintext.',
+      note: 'Decryption formula: P_i = D(C_i) ⊕ C_{i-1}',
     },
     {
       kind: 'custom',
-      title: 'Encryption Oracle & Tester',
+      title: '1. Encryption Oracle',
       html: `
         <div class="ex-data-block">
-          <div class="ex-input-row" style="margin-bottom: 12px;">
-            <span class="ex-input-label">User Input:</span>
-            <input id="bf-input" class="ex-text-input" type="text" value="adminXtrue" style="width:250px;" />
-            <button id="bf-encrypt-btn" class="ex-btn btn-check">Encrypt Input</button>
+          <div style="margin-bottom: 8px;">
+            <span class="ex-input-label" style="display:block; margin-bottom:4px;">Payload (up to 256 characters):</span>
+            <input 
+              id="bf-input" 
+              class="ex-text-input" 
+              type="text"
+              maxlength="256" 
+              style="width:100%; font-family:monospace;" 
+              value="adminXtrue"
+            />
+          </div>
+          <div style="margin-bottom: 12px; text-align: right;">
+            <button id="bf-encrypt-btn" class="ex-btn btn-check">Encrypt Payload</button>
           </div>
           <div class="ex-formula-block">
-            <div style="font-size:12px; color:#94a3b8;">Generated IV (Hex):</div>
-            <input id="bf-iv-output" class="ex-hex-input" style="width:100%; margin-bottom:8px;" />
-            <div style="font-size:12px; color:#94a3b8;">Generated Ciphertext (Hex):</div>
-            <textarea id="bf-ct-output" class="ex-hex-input" style="width:100%; height:60px; font-family:monospace;"></textarea>
+            <div style="font-size:12px; color:#94a3b8; margin-bottom:4px;">Ciphertext Output (Hex):</div>
+            <textarea id="bf-ct-output" class="ex-hex-input" style="width:100%; height:70px; font-family:monospace;" readonly></textarea>
           </div>
         </div>
       `,
       init: (container) => {
         const btn = container.querySelector('#bf-encrypt-btn');
         const input = container.querySelector('#bf-input');
-        const ivOut = container.querySelector('#bf-iv-output');
         const ctOut = container.querySelector('#bf-ct-output');
 
         btn.addEventListener('click', () => {
           try {
-            // Fixed function name to match your import:
             const res = encrypt_aes_bitflip(1337n, input.value);
-            ivOut.value = res.iv_hex;
             ctOut.value = res.ciphertext;
           } catch (err) {
-            alert(err);
+            alert('Encryption Error: ' + err);
           }
         });
       },
     },
     {
       kind: 'exerciseGroup',
-      title: 'Flag Submission',
+      title: '2. Flag Submission',
       items: [
         {
           num: '4.BITFLIP',
-          title: 'Submit Modified Ciphertext',
-          bodyHtml: `<p class="ex-p">Paste your modified Ciphertext and IV. The server will decrypt and check for <code>admin=true</code>.</p>`,
+          title: 'Submit Forged Ciphertext',
+          bodyHtml: `<p class="ex-p">Submit your modified hex ciphertext. The engine will decrypt it using the session key and check if <code>admin=true</code> exists in the resulting plaintext.</p>`,
           
-          // ✅ FIX 1: Add input configuration so chapter-engine doesn't crash
-          input: { type: 'custom' },
+          inputLabel: 'Ciphertext Hex =',
+          input: { 
+            type: 'text', 
+            placeholder: 'Paste modified ciphertext hex here...', 
+            maxlength: 256 
+          },
 
-          renderBody: () => `
-            <div style="margin-bottom:8px;">
-              <label class="ex-input-label">IV (Hex):</label>
-              <input id="sub-iv" class="ex-hex-input" style="width:100%;" placeholder="16-byte hex IV" />
-            </div>
-            <div style="margin-bottom:8px;">
-              <label class="ex-input-label">Ciphertext (Hex):</label>
-              <textarea id="sub-ct" class="ex-hex-input" style="width:100%; height:60px;" placeholder="Modified Ciphertext Hex"></textarea>
-            </div>
-          `,
-          check: () => {
-            const iv = document.querySelector('#sub-iv').value.trim();
-            const ct = document.querySelector('#sub-ct').value.trim();
-            // ✅ FIX 2: Fixed function name to match import
-            return check_aes_bitflip(1337n, ct, iv);
+          parse: (raw) => raw.trim(),
+
+          check: (ct) => {
+            if (!ct) {
+              return { correct: false, message: 'Please enter a ciphertext hex string.' };
+            }
+
+            try {
+              // Engine decrypts ct using target session state internally
+              const res = check_aes_bitflip(1337n, ct);
+              return {
+                correct: res.correct,
+                message: res.message
+              };
+            } catch (err) {
+              return {
+                correct: false,
+                message: 'Error during validation: ' + err
+              };
+            }
           },
         },
       ],
