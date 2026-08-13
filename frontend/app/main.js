@@ -1,6 +1,7 @@
 // main.js — App bootstrap & screen router
 import initCryptoEngine, { CircuitWasm } from './crypto_engine_pkg/crypto_engine.js';
 import initChallengeEngine from './chapters/challenges_pkg/challenge_engine.js';
+import { initPythonEngine } from './python-engine.js'; // 👈 1. Import Python Engine
 import { Sandbox } from './sandbox.js';
 import { initExercises } from './exercises.js';
 
@@ -17,15 +18,18 @@ async function initEngine() {
   const statusText = document.getElementById('wasm-status-text');
   
   try {
-    // Concurrently boot both Wasm engines
+    statusText.textContent = 'booting engines...';
+
+    // 👈 2. Concurrently boot ALL THREE engines (Rust Crypto, Rust Challenge, Python Pyodide)
     await Promise.all([
       initCryptoEngine(),
-      initChallengeEngine()
+      initChallengeEngine(),
+      initPythonEngine()
     ]);
 
     circuit = new CircuitWasm('CryptureEngine');
     statusLed.classList.add('ready');
-    statusText.textContent = 'engine ready';
+    statusText.textContent = 'engines ready';
 
     // Unlock nav cards
     document.getElementById('btn-open-sandbox').style.opacity       = '1';
@@ -38,7 +42,7 @@ async function initEngine() {
   } catch (err) {
     statusLed.classList.add('error');
     statusText.textContent = 'engine failed — ' + err.message;
-    console.error('WASM init error:', err);
+    console.error('Engine init error:', err);
   }
 }
 

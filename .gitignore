@@ -3,3 +3,4 @@ challenge-engine/target/
 crypto-engine/target/
 frontend/app/crypto_engine_pkg/
 frontend/app/chapters/challenges_pkg/
+frontend/app/chapters/python_engine/

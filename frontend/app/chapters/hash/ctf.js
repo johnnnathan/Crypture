@@ -44,7 +44,7 @@ export const sha1Ctf = {
         }
       },
       html: `
-        <h3 class="ex-h3">Section 2 — Collision Material</h3>
+        <h2 class="ex-h2">Section 2 — Collision Material</h2>
         <div id="collision-materials">Loading challenge material...</div>
       `,
     },
@@ -63,7 +63,7 @@ export const sha1Ctf = {
         }
       },
       html: `
-        <h3 class="ex-h3">Section 3 — SHA-1 Oracle Tool</h3>
+        <h2 class="ex-h2">Section 3 — SHA-1 Oracle Tool</h2>
         <div class="ex-input-row">
           <input id="oracle-input" class="ex-text-input" placeholder="Hex string input..." />
           <button id="oracle-btn" class="ex-btn-secondary">Hash Hex</button>
@@ -89,7 +89,7 @@ export const sha1Ctf = {
         }
       },
       html: `
-        <h3 class="ex-h3">Section 4 — Submission</h3>
+        <h2 class="ex-h2">Section 4 — Submission</h2>
         <p class="ex-p">Construct two distinct 448-byte messages in hex format:</p>
         <div style="margin-bottom:10px;">
           <label><strong>Message A (S ∥ M ∥ M<sub>a</sub>):</strong></label>
