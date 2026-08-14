@@ -25,20 +25,19 @@ class PaddingOracleChallenge(BaseChallenge):
     @classmethod
     def generate(cls, seed: int) -> "PaddingOracleChallenge":
         rng = random.Random(seed)
-        
-        # 16-byte secret key derived from seed
+
+        # 16-byte secret key and IV derived deterministically from seed
         key = rng.randbytes(16)
         iv = rng.randbytes(16)
-        
+
         flag = f"FLAG{{p4dd1ng_0r4cl3_l34k_{seed:x}}}"
         pt_bytes = flag.encode("utf-8")
-        
+
         # PKCS#7 Pad the flag payload to 16-byte block size
         pad_len = 16 - (len(pt_bytes) % 16)
         padded_pt = pt_bytes + bytes([pad_len]) * pad_len
-        
-        # Simple XOR-CBC stream simulator for block decryption verification
-        # (Emulates CBC block decryption behavior for oracle testing)
+
+        # XOR-CBC cipher simulator
         ct_blocks = []
         prev_block = iv
         for i in range(0, len(padded_pt), 16):
@@ -60,7 +59,7 @@ class PaddingOracleChallenge(BaseChallenge):
 
     def oracle_check_padding(self, ct_hex: str, iv_hex: str) -> bool:
         """
-        Side-channel oracle route invoked repeatedly by JS scripts.
+        Side-channel oracle route invoked repeatedly by frontend/scripts.
         Decrypts CBC blocks and validates PKCS#7 padding.
         """
         try:
@@ -86,12 +85,24 @@ class PaddingOracleChallenge(BaseChallenge):
         except Exception:
             return False
 
+    def to_payload(self) -> dict:
+        """
+        Serializes challenge data sent to the UI displays and solver API.
+        Contains hex strings only to prevent UTF-8 encoding errors.
+        """
+        return {
+            "challenge_id": self.challenge_id,
+            "seed": self.seed,
+            "iv_hex": self.iv_hex,
+            "ciphertext": self.ciphertext,
+        }
+
     def expected_answer(self) -> str:
         return self.flag
 
     def check(self, submission: str) -> ValidationResult:
         clean_sub = submission.strip()
-        
+
         if clean_sub == self.flag:
             return ValidationResult(
                 correct=True,

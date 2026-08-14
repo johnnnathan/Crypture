@@ -1,9 +1,9 @@
+from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Any
-from pathlib import Path
 
 from registry import get_challenge_instance
 
@@ -17,10 +17,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 class MethodCallRequest(BaseModel):
     seed: int = 1337
     method_name: str
     args: List[Any] = []
+
+
+# ── 1. API Route ─────────────────────────────────────────────────────────────
 
 @app.post("/api/challenge/{challenge_id}/call")
 def call_method(challenge_id: str, req: MethodCallRequest):
@@ -43,12 +47,28 @@ def call_method(challenge_id: str, req: MethodCallRequest):
         result = method(*req.args)
         if hasattr(result, "correct") and hasattr(result, "message"):
             return {"correct": result.correct, "message": result.message}
+            
+        if isinstance(result, bytes):
+            result = result.hex()
+        elif isinstance(result, dict):
+            result = {k: (v.hex() if isinstance(v, bytes) else v) for k, v in result.items()}
+
         return {"result": result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Execution error: {str(e)}")
 
-# Mount static frontend directory at root '/'
-# Adjust path relative to server.py location:
-frontend_path = Path(__file__).parent.parent.parent / "frontend" / "app"
-if frontend_path.exists():
-    app.mount("/", StaticFiles(directory=str(frontend_path), html=True), name="static")
+
+# ── 2. Static Frontend Route ──────────────────────────────────────────────────
+
+# `Path(__file__).resolve()` points to `.../Crypture/challenge-engine/python/server.py`
+# .parent -> python/
+# .parent -> challenge-engine/
+# .parent -> Crypture/ (Project Root)
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+FRONTEND_PATH = PROJECT_ROOT / "frontend" / "app"
+
+if FRONTEND_PATH.exists():
+    print(f"✅ Serving frontend files from: {FRONTEND_PATH}")
+    app.mount("/", StaticFiles(directory=str(FRONTEND_PATH), html=True), name="static")
+else:
+    print(f"❌ Could not find frontend directory at: {FRONTEND_PATH}")

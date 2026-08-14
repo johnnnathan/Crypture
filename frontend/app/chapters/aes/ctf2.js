@@ -1,82 +1,169 @@
-import initWasm, {
-  get_padding_oracle_target,
-  query_padding_oracle,
-  check_padding_oracle_flag,
-} from '../challenges_pkg/challenge_engine.js';
+import {
+  callPythonChallengeMethod,
+  loadPythonChallenge,
+  submitPythonChallenge
+} from '../../python-engine.js';
 
 export const aesPaddingOracleCtf = {
   id: 'aes-padding-oracle',
-  num: '04.3',
-  tag: 'CTF Challenge',
-  tagClass: 'aes',
-  title: 'Challenge — CBC Padding Oracle',
-  desc: 'Decrypt a secret flag by using a padding validity oracle (Vaudenay attack).',
-  concepts: ['AES-CBC', 'PKCS#7', 'Padding Oracle', 'Side-Channel Attack'],
-
-  onMount: async () => { await initWasm(); },
+  num: '05.1',
+  tag: 'Side-Channel',
+  tagClass: 'hash',
+  title: 'AES-CBC Padding Oracle Attack',
+  desc: 'Exploit PKCS#7 padding error side-channels to decrypt AES-CBC ciphertexts byte-by-byte.',
+  concepts: ['AES-CBC', 'PKCS#7 Padding', 'Side-Channel Leak'],
+  topbarTitle: 'Exercise 05.1 — Padding Oracle',
 
   blocks: [
     {
       kind: 'text',
       heading: 'h2',
-      title: 'Target Challenge Ciphertext',
+      title: 'The Padding Oracle Leak',
       html: `
-        <p class="ex-p">An encrypted flag has been intercepted. The server exposes an endpoint that decrypts submitted ciphertexts and reveals <strong>only</strong> whether PKCS#7 padding is valid or invalid.</p>
-      `,
+        <p class="ex-p">
+          When an application decrypts an AES-CBC ciphertext, it validates and strips the 
+          <strong>PKCS#7 padding</strong> at the end. If the server reveals whether the padding 
+          was valid (even through error codes), an attacker can abuse this side-channel to decrypt 
+          the entire message byte-by-byte—without ever knowing the secret key!
+        </p>
+      `
     },
     {
       kind: 'custom',
-      title: 'Intercepted Data & Oracle Sandbox',
+      title: 'Padding Oracle Interface',
+      desc: 'Interact with the Python WebAssembly runtime to query the side-channel and recover the flag.',
       html: `
-        <div class="ex-data-block">
-          <div id="po-target-banner" class="ex-code-banner">Loading Wasm target...</div>
-          <hr style="border-color:#1e293b; margin:12px 0;">
-          <p class="ex-p"><strong>Query Oracle Sandbox:</strong></p>
-          <div style="margin-bottom:8px;">
-            <span class="ex-input-label">IV (Hex):</span>
-            <input id="po-iv-input" class="ex-hex-input" style="width:100%;" />
+        <div class="ex-exercise" id="oracle-card">
+          <div class="ex-ex-body">
+            
+            <div id="oracle-loading" style="color: #888; padding: 12px 0;">
+              🌀 Booting Python WebAssembly Engine...
+            </div>
+            
+            <div id="oracle-content" style="display: none;">
+              
+              <div class="ex-data-block" style="margin-bottom: 16px;">
+                <div class="ex-data-row">
+                  <span>Target IV (Hex):</span>
+                  <span class="accent" id="target-iv" style="font-family: monospace;">—</span>
+                </div>
+                <div class="ex-data-row">
+                  <span>Target Ciphertext (Hex):</span>
+                  <span class="accent" id="target-ct" style="font-family: monospace; word-break: break-all;">—</span>
+                </div>
+              </div>
+
+              <h3 class="ex-h3" style="margin-top: 20px; margin-bottom: 8px;">1. Query Padding Oracle</h3>
+              <p class="ex-p" style="margin-bottom: 12px; font-size: 0.9em; color: #a0a0a0;">
+                Send candidate IV and Ciphertext blocks to Python's decryption pipeline.
+              </p>
+
+              <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span class="ex-input-label" style="width: 60px;">IV =</span>
+                  <input id="input-oracle-iv" class="ex-text-input" type="text" placeholder="32 hex chars" style="flex: 1;" />
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span class="ex-input-label" style="width: 60px;">CT =</span>
+                  <input id="input-oracle-ct" class="ex-text-input" type="text" placeholder="Ciphertext hex" style="flex: 1;" />
+                </div>
+                
+                <div style="margin-top: 4px;">
+                  <button id="btn-query-oracle" class="ex-btn-secondary btn-reroll">⚡ Query Oracle</button>
+                </div>
+                <div id="oracle-feedback" class="ex-feedback" style="display: none; margin-top: 6px;"></div>
+              </div>
+
+              <hr style="border: 0; border-top: 1px solid rgba(255, 255, 255, 0.1); margin: 20px 0;" />
+
+              <h3 class="ex-h3" style="margin-bottom: 8px;">2. Submit Recovered Flag</h3>
+              <div class="ex-input-row">
+                <span class="ex-input-label">Flag =</span>
+                <input id="input-flag" class="ex-text-input" type="text" placeholder="FLAG{...}" style="width: 280px;" />
+                <button id="btn-submit-flag" class="ex-btn btn-check">Submit Answer</button>
+              </div>
+              <div id="submit-feedback" class="ex-feedback" style="display: none; margin-top: 12px;"></div>
+
+            </div>
           </div>
-          <div style="margin-bottom:8px;">
-            <span class="ex-input-label">Ciphertext (Hex):</span>
-            <textarea id="po-ct-input" class="ex-hex-input" style="width:100%; height:50px;"></textarea>
-          </div>
-          <button id="po-query-btn" class="ex-btn btn-check">Send to Oracle</button>
-          <span id="po-oracle-result" style="margin-left:12px; font-weight:bold;"></span>
         </div>
       `,
-      init: (container) => {
-        const target = get_padding_oracle_target(1337n);
-        const banner = container.querySelector('#po-target-banner');
-        const ivIn = container.querySelector('#po-iv-input');
-        const ctIn = container.querySelector('#po-ct-input');
-        const btn = container.querySelector('#po-query-btn');
-        const resSpan = container.querySelector('#po-oracle-result');
+      
+      init: async (page) => {
+        const seed = 1337;
+        const challengeId = 'aes-padding-oracle';
 
-        banner.textContent = `Target IV: ${target.iv_hex}\nTarget CT: ${target.ciphertext}`;
-        ivIn.value = target.iv_hex;
-        ctIn.value = target.ciphertext;
+        const loadingEl = page.querySelector('#oracle-loading');
+        const contentEl = page.querySelector('#oracle-content');
+        const ivDisplay = page.querySelector('#target-iv');
+        const ctDisplay = page.querySelector('#target-ct');
 
-        btn.addEventListener('click', () => {
-          const status = query_padding_oracle(1337n, ctIn.value, ivIn.value);
-          resSpan.textContent = status;
-          resSpan.style.color = status === 'VALID' ? '#00f0ff' : '#ff4a4a';
-        });
-      },
-    },
-    {
-      kind: 'exerciseGroup',
-      title: 'Flag Submission',
-      items: [
-        {
-          num: '4.PAD',
-          title: 'Submit Recovered Flag',
-          input: { type: 'text', placeholder: 'FLAG{...}', width: '320px' },
-          parse: (raw) => raw.trim(),
-          check: (val) => check_padding_oracle_flag(1337n, val),
-        },
-      ],
-    },
-  ],
+        const inputOracleIv = page.querySelector('#input-oracle-iv');
+        const inputOracleCt = page.querySelector('#input-oracle-ct');
+        const btnQuery = page.querySelector('#btn-query-oracle');
+        const fbOracle = page.querySelector('#oracle-feedback');
+
+        const inputFlag = page.querySelector('#input-flag');
+        const btnSubmit = page.querySelector('#btn-submit-flag');
+        const fbSubmit = page.querySelector('#submit-feedback');
+
+        try {
+          const payload = await loadPythonChallenge(challengeId, seed);
+
+          if (ivDisplay) ivDisplay.textContent = payload.iv_hex;
+          if (ctDisplay) ctDisplay.textContent = payload.ciphertext;
+
+          if (inputOracleIv) inputOracleIv.value = payload.iv_hex;
+          if (inputOracleCt) inputOracleCt.value = payload.ciphertext;
+
+          if (loadingEl) loadingEl.style.display = 'none';
+          if (contentEl) contentEl.style.display = 'block';
+
+          btnQuery.addEventListener('click', async () => {
+            const testIv = inputOracleIv.value.trim();
+            const testCt = inputOracleCt.value.trim();
+
+            fbOracle.style.display = 'block';
+            fbOracle.className = 'ex-feedback';
+            fbOracle.textContent = 'Querying Python oracle...';
+
+            const isValid = await callPythonChallengeMethod(
+              challengeId,
+              seed,
+              'oracle_check_padding',
+              testCt,
+              testIv
+            );
+
+            if (isValid) {
+              fbOracle.className = 'ex-feedback success';
+              fbOracle.textContent = '✅ VALID PADDING (HTTP 200 OK)';
+            } else {
+              fbOracle.className = 'ex-feedback error';
+              fbOracle.textContent = '❌ INVALID PADDING (HTTP 500 Internal Error)';
+            }
+          });
+
+          btnSubmit.addEventListener('click', async () => {
+            const userFlag = inputFlag.value.trim();
+
+            fbSubmit.style.display = 'block';
+            fbSubmit.className = 'ex-feedback';
+            fbSubmit.textContent = 'Verifying flag...';
+
+            const result = await submitPythonChallenge(challengeId, seed, userFlag);
+
+            fbSubmit.textContent = result.message;
+            fbSubmit.className = result.correct ? 'ex-feedback success' : 'ex-feedback error';
+          });
+
+        } catch (err) {
+          if (loadingEl) {
+            loadingEl.textContent = `❌ Initialization Error: ${err.message}`;
+            loadingEl.style.color = '#ff4d4d';
+          }
+        }
+      }
+    }
+  ]
 };
-
-export default aesPaddingOracleCtf;

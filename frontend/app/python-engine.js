@@ -59,3 +59,28 @@ export async function submitPythonChallenge(challengeId, seed, submissionString)
   return JSON.parse(rawJson);
 }
 
+/**
+ * Generic JS executor that can invoke ANY public method on ANY challenge class.
+ */
+export async function callPythonChallengeMethod(challengeId, seed, methodName, ...args) {
+  const py = await initPythonEngine();
+  
+  // Safely pass arguments array into Pyodide scope
+  py.globals.set("__method_args", JSON.stringify(args));
+  
+  const rawJson = py.runPython(`
+    pyodide_bridge.call_challenge_method(
+      "${challengeId}",
+      ${seed},
+      "${methodName}",
+      __method_args
+    )
+  `);
+  
+  const res = JSON.parse(rawJson);
+  if (res.error) {
+    throw new Error(res.error);
+  }
+  
+  return res.result !== undefined ? res.result : res;
+}
