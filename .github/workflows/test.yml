@@ -1,0 +1,48 @@
+name: Run Integration Tests
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install fastapi uvicorn requests playwright
+
+      - name: Install Playwright Browsers & System Dependencies
+        run: |
+          playwright install --with-deps chromium
+
+      - name: Make tools executable
+        run: |
+          chmod +x tools/run-server.sh
+
+      - name: Start Uvicorn Server in Background
+        run: |
+          ./tools/run-server.sh &
+          # Wait a few seconds for Uvicorn process to spin up
+          sleep 3
+
+      - name: Run Server API & Engine Tests
+        run: |
+          python tools/test_server.py
+
+      - name: Run Engine Boot Integration Test (Playwright)
+        run: |
+          python tools/test_engine_boot.py
