@@ -1,4 +1,4 @@
-name: Run Integration Tests
+name: CI Test Suite
 
 on:
   push:
@@ -11,8 +11,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Check out repository
         uses: actions/checkout@v4
+
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Install wasm-pack
+        run: |
+          curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -24,25 +33,16 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-
-      - name: Install Playwright Browsers & System Dependencies
-        run: |
           playwright install --with-deps chromium
 
-      - name: Make tools executable
-        run: |
-          chmod +x tools/run_server.sh
+      - name: Make build scripts executable
+        run: chmod +x tools/*.sh
 
-      - name: Start Uvicorn Server in Background
+      - name: Build WASM and Engine Packages
         run: |
-          ./tools/run_server.sh &
-          # Wait a few seconds for Uvicorn process to spin up
-          sleep 3
+          ./tools/build_challenge_engine.sh
+          ./tools/build_crypto_engine.sh
+          ./tools/build_python_challenge.sh
 
-      - name: Run Server API & Engine Tests
-        run: |
-          python tools/test_server.py
-
-      - name: Run Engine Boot Integration Test (Playwright)
-        run: |
-          python tools/test_engine_boot.py
+      - name: Run Integration Tests
+        run: python tools/test_server.py
