@@ -31,11 +31,11 @@ jobs:
 
       - name: Make tools executable
         run: |
-          chmod +x tools/run-server.sh
+          chmod +x tools/run_server.sh
 
       - name: Start Uvicorn Server in Background
         run: |
-          ./tools/run-server.sh &
+          ./tools/run_server.sh &
           # Wait a few seconds for Uvicorn process to spin up
           sleep 3
 
