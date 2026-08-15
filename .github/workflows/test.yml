@@ -44,5 +44,17 @@ jobs:
           ./tools/build_crypto_engine.sh
           ./tools/build_python_challenge_engine.sh
 
+
+      - name: Start Web Server and Run Integration Tests
+        run: |
+          # Start server in background (adjust directory/command as needed)
+          python -m http.server 8000 --directory frontend/app &
+          
+          # Wait a few seconds for the port to open
+          sleep 3
+          
+          # Run tests
+          python tools/test_server.py
+
       - name: Run Integration Tests
         run: python tools/test_server.py
