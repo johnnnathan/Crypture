@@ -7,7 +7,7 @@ import initWasm, {
 
 export const aesIvKeyCtf = {
   id: 'aes-iv-key',
-  num: '04.4',
+  num: '04.5',
   tag: 'CTF Challenge',
   tagClass: 'aes',
   title: 'Challenge — AES-CBC IV = Key Reuse',

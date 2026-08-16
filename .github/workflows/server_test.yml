@@ -56,5 +56,3 @@ jobs:
           # Run tests
           python tools/test_server.py
 
-      - name: Run Integration Tests
-        run: python tools/test_server.py

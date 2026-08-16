@@ -6,7 +6,7 @@ import initWasm, {
 
 export const sha1Ctf = {
   id: 'sha1-collision-extension',
-  num: '03.3',
+  num: '05.3',
   tag: 'CTF Challenge',
   tagClass: 'hash',
   title: 'Challenge — SHA-1 Collision Extension',

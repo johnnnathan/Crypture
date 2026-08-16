@@ -6,7 +6,7 @@ import {
 
 export const aesPaddingOracleCtf = {
   id: 'aes-padding-oracle',
-  num: '05.1',
+  num: '04.4',
   tag: 'Side-Channel',
   tagClass: 'hash',
   title: 'AES-CBC Padding Oracle Attack',

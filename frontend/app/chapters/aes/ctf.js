@@ -2,7 +2,7 @@ import initWasm, { encrypt_aes_bitflip, check_aes_bitflip } from '../challenges_
 
 export const aesBitflipCtf = {
   id: 'aes-bitflip',
-  num: '04.2',
+  num: '04.3',
   tag: 'CTF Challenge',
   tagClass: 'aes',
   title: 'Challenge — AES-CBC Bit Flipping',
