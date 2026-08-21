@@ -7,6 +7,7 @@ import caesarPages from "./chapters/caesar/index.js";
 import blockPages from "./chapters/blocks/index.js"
 import aesPages from "./chapters/aes/index.js"
 import hashPages from "./chapters/hash/index.js"
+import schnorrPages from "./chapters/schnorr/index.js"
 import testPages from "./chapters/test/index.js"
 
 function showScreen(id) {
@@ -29,6 +30,7 @@ export function initExercises(CircuitWasm) {
         ...blockPages,
         ...aesPages,
         ...hashPages,
+        ...schnorrPages, 
         ...testPages,
     ];
 

@@ -5,6 +5,8 @@ import {
   showFeedback, clearFeedback,
 } from './exercise-kit.js';
 
+// ── Default Parsers ───────────────────────────────────────────────────────
+
 const DEFAULT_PARSERS = {
   binary: parseBinaryByte,
   hex: parseHexByte,
@@ -14,84 +16,131 @@ const DEFAULT_PARSERS = {
   mc: (v) => (v ? String(v).trim() : null),
 };
 
-function el(html) { 
+// ── Formatting & Helper Utilities ─────────────────────────────────────────
+
+export function el(html) { 
   const wrap = document.createElement('div');
   wrap.innerHTML = html.trim();
   return wrap.firstElementChild;
 }
 
-function esc(s) {
-  return String(s).replace(/[&<>"']/g, c => ({
+export function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
   }[c]));
 }
 
-// ── Block renderers ──────────────────────────────────────────────────────
+/**
+ * Converts **bold** and `code` syntax into clean HTML.
+ */
+export function parseInlineMarkdown(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/`(.*?)`/g, '<code>$1</code>');
+}
+
+/**
+ * Functional paragraph builder exported for chapter files.
+ */
+export function p(text) {
+  return parseInlineMarkdown(text);
+}
+
+// ── Block Renderers ───────────────────────────────────────────────────────
 
 function renderTextBlock(b) {
   const H = b.heading === 'h3' ? 'h3' : 'h2';
   const hcls = b.heading === 'h3' ? 'ex-h3' : 'ex-h2';
-  const title = b.title ? `<${H} class="${hcls}">${b.title}</${H}>` : '';
-  return `<section class="ex-section">${title}${b.html}</section>`;
+  const title = b.title ? `<${H} class="${hcls}">${parseInlineMarkdown(b.title)}</${H}>` : '';
+  
+  let contentHtml = '';
+
+  // Handle array-based content format
+  if (Array.isArray(b.content)) {
+    contentHtml = b.content.map(item => {
+      if (typeof item === 'string') {
+        return `<p class="ex-p">${parseInlineMarkdown(item)}</p>`;
+      }
+      if (item && item.ul) {
+        const lis = item.ul.map(li => `<li>${parseInlineMarkdown(li)}</li>`).join('');
+        return `<ul class="ex-ul">${lis}</ul>`;
+      }
+      if (item && item.ol) {
+        const lis = item.ol.map(li => `<li>${parseInlineMarkdown(li)}</li>`).join('');
+        return `<ol class="ex-ol">${lis}</ol>`;
+      }
+      if (item && item.text) {
+        const cls = item.class ? ` class="${esc(item.class)}"` : '';
+        const style = item.style ? ` style="${esc(item.style)}"` : '';
+        return `<div${cls}${style}>${parseInlineMarkdown(item.text)}</div>`;
+      }
+      return '';
+    }).join('');
+  } 
+  // Fallback for legacy b.html string property
+  else if (b.html) {
+    contentHtml = b.html;
+  }
+
+  return `<section class="ex-section">${title}${contentHtml}</section>`;
 }
 
 function renderFormulaBlock(b) {
-  const title = b.title ? `<h3 class="ex-h3">${b.title}</h3>` : '';
-  const lines = b.lines.map(l => `<div class="ex-formula">${l}</div>`).join('');
-  const note = b.note ? `<div class="ex-formula-note">${b.note}</div>` : '';
+  const title = b.title ? `<h3 class="ex-h3">${parseInlineMarkdown(b.title)}</h3>` : '';
+  const lines = (b.lines || []).map(l => `<div class="ex-formula">${parseInlineMarkdown(l)}</div>`).join('');
+  const note = b.note ? `<div class="ex-formula-note">${parseInlineMarkdown(b.note)}</div>` : '';
   return `<section class="ex-section">${title}<div class="ex-formula-block">${lines}${note}</div></section>`;
 }
 
 function renderTable(t) {
-  const head = `<tr>${t.columns.map(c => `<th>${c}</th>`).join('')}</tr>`;
-  const body = t.rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('');
-  return `<div><div class="ex-table-label">${t.label}</div>
-    <table class="ex-table"><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
+  const head = `<tr>${(t.columns || []).map(c => `<th>${parseInlineMarkdown(c)}</th>`).join('')}</tr>`;
+  const body = (t.rows || []).map(r => `<tr>${r.map(c => `<td>${parseInlineMarkdown(c)}</td>`).join('')}</tr>`).join('');
+  const label = t.label ? `<div class="ex-table-label">${parseInlineMarkdown(t.label)}</div>` : '';
+  return `<div>${label}<table class="ex-table"><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
 }
 
 function renderTableBlock(b) {
-  const title = b.title ? `<h3 class="ex-h3">${b.title}</h3>` : '';
-  const desc = b.desc ? `<p class="ex-p">${b.desc}</p>` : '';
+  const title = b.title ? `<h3 class="ex-h3">${parseInlineMarkdown(b.title)}</h3>` : '';
+  const desc = b.desc ? `<p class="ex-p">${parseInlineMarkdown(b.desc)}</p>` : '';
   return `<section class="ex-section">${title}${desc}<div class="ex-table-wrap">${renderTable(b)}</div></section>`;
 }
 
 function renderTablesRowBlock(b) {
-  const title = b.title ? `<h3 class="ex-h3">${b.title}</h3>` : '';
-  const desc = b.desc ? `<p class="ex-p">${b.desc}</p>` : '';
-  const tables = b.tables.map(renderTable).join('');
+  const title = b.title ? `<h3 class="ex-h3">${parseInlineMarkdown(b.title)}</h3>` : '';
+  const desc = b.desc ? `<p class="ex-p">${parseInlineMarkdown(b.desc)}</p>` : '';
+  const tables = (b.tables || []).map(renderTable).join('');
   return `<section class="ex-section">${title}${desc}<div class="ex-tables-row">${tables}</div></section>`;
 }
 
 function renderCustomBlock(b) {
-  const title = b.title ? `<h3 class="ex-h3">${b.title}</h3>` : '';
-  const desc = b.desc ? `<p class="ex-p">${b.desc}</p>` : '';
-  return `<section class="ex-section">${title}${desc}${b.html}</section>`;
+  const title = b.title ? `<h3 class="ex-h3">${parseInlineMarkdown(b.title)}</h3>` : '';
+  const desc = b.desc ? `<p class="ex-p">${parseInlineMarkdown(b.desc)}</p>` : '';
+  return `<section class="ex-section">${title}${desc}${b.html || ''}</section>`;
 }
 
 function renderExerciseItem(chapter, blockIdx, item, idx) {
   const uid = `${chapter.id}-b${blockIdx}-e${idx}`;
   const dataRows = item.dataRows
     ? `<div class="ex-data-block">${item.dataRows.map(r =>
-        `<div class="ex-data-row"><span>${r.label}</span><span class="accent"${r.id ? ` id="${uid}-${r.id}"` : ''}>${r.value ?? '—'}</span></div>`
+        `<div class="ex-data-row"><span>${parseInlineMarkdown(r.label)}</span><span class="accent"${r.id ? ` id="${uid}-${r.id}"` : ''}>${r.value ?? '—'}</span></div>`
       ).join('')}</div>`
     : '';
-  const hint = item.hint ? `<p class="ex-p hint">${item.hint}</p>` : '';
+  const hint = item.hint ? `<p class="ex-p hint">${parseInlineMarkdown(item.hint)}</p>` : '';
 
   let inputHtml;
   if (item.input.type === 'mc' || item.input.type === 'choice') {
-    // Standardize options array format (supports array of strings or array of objects)
     const options = (item.input.options || []).map(opt => {
       if (typeof opt === 'string') return { label: opt, value: opt };
       return opt;
     });
 
-
     inputHtml = `
       <div class="ex-radio-group" id="${uid}-group" style="display: flex; flex-direction: column; gap: 8px; margin: 12px 0;">
-        ${options.map((o, i) => `
+        ${options.map((o) => `
           <label class="ex-radio" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
             <input type="radio" name="${uid}" value="${esc(o.value)}" />
-            <span>${o.label}</span>
+            <span>${parseInlineMarkdown(o.label)}</span>
           </label>`).join('')}
       </div>
       <button id="${uid}-btn" class="ex-btn btn-check" style="margin-top: 8px;">Check Answer</button>`;
@@ -103,19 +152,21 @@ function renderExerciseItem(chapter, blockIdx, item, idx) {
       : '';
 
     inputHtml = `<div class="ex-input-row">
-      <span class="ex-input-label">${item.inputLabel || 'Answer ='}</span>
-      <input id="${uid}-input" class="${cls}" type="text" placeholder="${item.input.placeholder || ''}" maxlength="${item.input.maxlength || 32}"${widthStyle} />
+      <span class="ex-input-label">${parseInlineMarkdown(item.inputLabel || 'Answer =')}</span>
+      <input id="${uid}-input" class="${cls}" type="text" placeholder="${esc(item.input.placeholder || '')}" maxlength="${item.input.maxlength || 32}"${widthStyle} />
       <button id="${uid}-btn" class="ex-btn btn-check">Check</button>
       ${rerollBtn}
     </div>`;
   }
 
-  const bodyContent = typeof item.renderBody === 'function' ? item.renderBody() : (item.bodyHtml || '');
+  const bodyContent = typeof item.renderBody === 'function' 
+    ? item.renderBody() 
+    : parseInlineMarkdown(item.bodyHtml || '');
 
   return `<div class="ex-exercise" id="${uid}-card">
     <div class="ex-ex-num">${item.num}</div>
     <div class="ex-ex-body">
-      <div class="ex-ex-title">${item.title}</div>
+      <div class="ex-ex-title">${parseInlineMarkdown(item.title)}</div>
       <div class="ex-body-target">${bodyContent}</div>
       ${hint}
       ${dataRows}
@@ -125,28 +176,27 @@ function renderExerciseItem(chapter, blockIdx, item, idx) {
   </div>`;
 }
 
-
 function renderExerciseGroupBlock(chapter, blockIdx, b) {
-  const items = b.items.map((item, idx) => renderExerciseItem(chapter, blockIdx, item, idx)).join('');
+  const items = (b.items || []).map((item, idx) => renderExerciseItem(chapter, blockIdx, item, idx)).join('');
   return `<section class="ex-section ex-exercises-block">
-    <h3 class="ex-h3">${b.title}</h3>
+    <h3 class="ex-h3">${parseInlineMarkdown(b.title)}</h3>
     ${items}
   </section>`;
 }
 
-// ── Media & Slideshow Block Renderers ────────────────────────────────────
+// ── Media & Slideshow Renderers ──────────────────────────────────────────
 
 function renderMediaBlock(b, blockIdx, chapterId) {
-  const title = b.title ? `<h3 class="ex-h3">${b.title}</h3>` : '';
-  const desc = b.desc ? `<p class="ex-p">${b.desc}</p>` : '';
+  const title = b.title ? `<h3 class="ex-h3">${parseInlineMarkdown(b.title)}</h3>` : '';
+  const desc = b.desc ? `<p class="ex-p">${parseInlineMarkdown(b.desc)}</p>` : '';
   
   if (b.mediaType === 'video') {
     return `
       <section class="ex-section">
         ${title}${desc}
         <div class="ex-media-wrap">
-          <video controls class="ex-media-video" src="${b.src}" poster="${b.poster || ''}"></video>
-          ${b.caption ? `<div class="ex-media-caption">${b.caption}</div>` : ''}
+          <video controls class="ex-media-video" src="${esc(b.src)}" poster="${esc(b.poster || '')}"></video>
+          ${b.caption ? `<div class="ex-media-caption">${parseInlineMarkdown(b.caption)}</div>` : ''}
         </div>
       </section>`;
   }
@@ -155,8 +205,8 @@ function renderMediaBlock(b, blockIdx, chapterId) {
     const uid = `${chapterId}-b${blockIdx}-slideshow`;
     const slides = b.items.map((item, idx) => `
       <div class="ex-slide ${idx === 0 ? 'active' : ''}" data-slide-idx="${idx}">
-        <img src="${item.src}" alt="${item.alt || ''}" class="ex-slide-img" />
-        ${item.caption ? `<div class="ex-media-caption">${item.caption}</div>` : ''}
+        <img src="${esc(item.src)}" alt="${esc(item.alt || '')}" class="ex-slide-img" />
+        ${item.caption ? `<div class="ex-media-caption">${parseInlineMarkdown(item.caption)}</div>` : ''}
       </div>
     `).join('');
 
@@ -178,16 +228,16 @@ function renderMediaBlock(b, blockIdx, chapterId) {
     <section class="ex-section">
       ${title}${desc}
       <div class="ex-media-wrap">
-        <img src="${b.src}" alt="${b.alt || ''}" class="ex-media-img" />
-        ${b.caption ? `<div class="ex-media-caption">${b.caption}</div>` : ''}
+        <img src="${esc(b.src)}" alt="${esc(b.alt || '')}" class="ex-media-img" />
+        ${b.caption ? `<div class="ex-media-caption">${parseInlineMarkdown(b.caption)}</div>` : ''}
       </div>
     </section>`;
 }
 
-// ── Wiring (event listeners) for exercise groups ────────────────────────
+// ── Wiring Event Handlers ─────────────────────────────────────────────────
 
 function wireExerciseGroup(container, chapter, blockIdx, b, kit) {
-  b.items.forEach((item, idx) => {
+  (b.items || []).forEach((item, idx) => {
     const uid = `${chapter.id}-b${blockIdx}-e${idx}`;
     const cardEl = container.querySelector(`#${uid}-card`);
     const fb = container.querySelector(`#${uid}-fb`);
@@ -199,7 +249,8 @@ function wireExerciseGroup(container, chapter, blockIdx, b, kit) {
         const checked = container.querySelector(`input[name="${uid}"]:checked`);
         return checked ? checked.value : null;
       }
-      return container.querySelector(`#${uid}-input`).value;
+      const inp = container.querySelector(`#${uid}-input`);
+      return inp ? inp.value : '';
     };
     const parse = item.parse || DEFAULT_PARSERS[item.input.type] || (v => v);
 
@@ -207,7 +258,7 @@ function wireExerciseGroup(container, chapter, blockIdx, b, kit) {
       btn.addEventListener('click', () => {
         const raw = getRaw();
         if (raw === null || raw === '') {
-          showFeedback(fb, false, item.invalidMessage || 'Please select an answer first.');
+          showFeedback(fb, false, item.invalidMessage || 'Please select or enter an answer first.');
           return;
         }
         const parsed = parse(raw);
@@ -264,7 +315,7 @@ function wireSlideshowBlock(container, blockIdx, chapterId, b) {
   }
 }
 
-// ── Chapter screen assembly ──────────────────────────────────────────────
+// ── Screen Assembly & Rendering ───────────────────────────────────────────
 
 function renderBlock(chapter, idx, block) {
   switch (block.kind) {
@@ -289,20 +340,20 @@ function buildChapterScreen(chapter, kit) {
         Exercises
       </button>
       <div class="tb-divider"></div>
-      <div class="tb-title">${chapter.topbarTitle || chapter.title}</div>
+      <div class="tb-title">${esc(chapter.topbarTitle || chapter.title)}</div>
       <div class="tb-spacer"></div>
-      <div class="ex-tag ${chapter.tagClass}">${chapter.tag}</div>
+      <div class="ex-tag ${esc(chapter.tagClass || '')}">${esc(chapter.tag || '')}</div>
     </nav>
     <div class="ex-page"></div>
   </div>`);
 
   const page = screen.querySelector('.ex-page');
-  chapter.blocks.forEach((block, idx) => {
+  (chapter.blocks || []).forEach((block, idx) => {
     const html = renderBlock(chapter, idx, block);
     if (html) page.insertAdjacentHTML('beforeend', html);
   });
 
-  chapter.blocks.forEach((block, idx) => {
+  (chapter.blocks || []).forEach((block, idx) => {
     if (block.kind === 'exerciseGroup') wireExerciseGroup(page, chapter, idx, block, kit);
     if (block.kind === 'media') wireSlideshowBlock(page, idx, chapter.id, block);
     if (block.kind === 'custom' && typeof block.init === 'function') block.init(page, kit);
@@ -320,13 +371,13 @@ export function initChapterSystem({ chapters, listContainer, screenRoot, showScr
 
   listContainer.innerHTML = chapters.map((ch) => `
     <div class="ex-list-card" data-chapter-id="${ch.id}">
-      <div class="ex-card-num">${ch.num}</div>
-      <div class="ex-card-color ${ch.tagClass}"></div>
+      <div class="ex-card-num">${esc(ch.num)}</div>
+      <div class="ex-card-color ${esc(ch.tagClass || '')}"></div>
       <div class="ex-card-body">
-        <div class="ex-card-tag ${ch.tagClass}">${ch.tag}</div>
-        <div class="ex-card-title">${ch.title}</div>
-        <div class="ex-card-desc">${ch.desc}</div>
-        <div class="ex-card-concepts">${ch.concepts.map(c => `<span>${c}</span>`).join('')}</div>
+        <div class="ex-card-tag ${esc(ch.tagClass || '')}">${esc(ch.tag || '')}</div>
+        <div class="ex-card-title">${esc(ch.title)}</div>
+        <div class="ex-card-desc">${esc(ch.desc)}</div>
+        <div class="ex-card-concepts">${(ch.concepts || []).map(c => `<span>${esc(c)}</span>`).join('')}</div>
       </div>
       <div class="ex-card-arrow">→</div>
     </div>`).join('');
