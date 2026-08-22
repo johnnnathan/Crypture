@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chapter Authoring Studio</title>
+  
+  <!-- 1. Load external stylesheet FIRST so internal styles can override it -->
+  <link rel="stylesheet" href="style/base.css" />
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+      background-color: var(--bg-void, #060809);
+      color: var(--text-primary, #c8d8e8);
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .studio-container {
+      display: flex;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    /* Left Editor Pane */
+    .editor-pane {
+      width: 50%;
+      height: 100%;
+      border-right: 1px solid var(--border-mid, #243040);
+      display: flex;
+      flex-direction: column;
+      background: #0a0d10;
+    }
+
+    .editor-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--border-mid, #243040);
+      background: #0e1318;
+    }
+
+    .editor-header h1 {
+      font-size: 1.2rem;
+      color: var(--text-accent, #00e5aa);
+      margin-bottom: 12px;
+    }
+
+    .meta-inputs {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+    }
+
+    .palette {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-dim, #1a2230);
+      background: #131920;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .forms-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* Right Preview Pane */
+    .preview-pane {
+      width: 50%;
+      height: 100vh;
+      overflow-y: auto;
+      overflow-x: hidden;
+      background: var(--bg-void, #060809);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Force elements appended inside preview-mount to isolate their position */
+#preview-mount {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow-y: auto;
+    }
+
+#preview-mount > * {
+      position: relative !important; /* Overrides position: absolute / fixed on engine output */
+      top: 0 !important;
+      left: 0 !important;
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+
+    /* Form Controls Styling */
+    .block-card {
+      background: #0e1318;
+      border: 1px solid var(--border-mid, #243040);
+      border-radius: 6px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .block-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-dim, #1a2230);
+      padding-bottom: 8px;
+    }
+
+    .block-title-tag {
+      font-weight: bold;
+      color: #00e5aa;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+    }
+
+    .card-actions {
+      display: flex;
+      gap: 4px;
+    }
+
+    input, textarea, select {
+      background: #060809;
+      border: 1px solid var(--border-mid, #243040);
+      color: #c8d8e8;
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 0.85rem;
+      width: 100%;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      outline: 1px solid #00e5aa;
+      border-color: #00e5aa;
+    }
+
+    label {
+      font-size: 0.75rem;
+      color: #7090a8;
+      display: block;
+      margin-bottom: 2px;
+    }
+
+    .btn {
+      background: #18202a;
+      border: 1px solid var(--border-mid, #243040);
+      color: #c8d8e8;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+
+    .btn:hover {
+      background: #243040;
+      color: #00e5aa;
+    }
+
+    .btn-danger {
+      color: #ff5555;
+    }
+
+    .btn-danger:hover {
+      background: #3a1515;
+      color: #ff7777;
+    }
+
+    .nested-item {
+      background: #131920;
+      border: 1px solid var(--border-dim, #1a2230);
+      padding: 8px;
+      margin-top: 8px;
+      border-radius: 4px;
+    }
+
+    /* Modal Styling for Export (Fixed display precedence) */
+    .modal {
+      display: none !important; /* Hidden by default */
+      position: fixed;
+      top: 0; 
+      left: 0; 
+      width: 100vw; 
+      height: 100vh;
+      background: rgba(6, 8, 9, 0.85);
+      backdrop-filter: blur(4px);
+      z-index: 9999;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal.active {
+      display: flex !important; /* Show when active class is present */
+    }
+
+    .modal-content {
+      background: #0e1318;
+      border: 1px solid #00e5aa;
+      width: 90%;
+      max-width: 700px;
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+      border-radius: 6px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+  </style>
+</head>
+<body>
+
+<div class="studio-container">
+  <!-- LEFT: Editor Pane -->
+  <div class="editor-pane">
+    <div class="editor-header">
+      <h1>⚡ Chapter Authoring Studio</h1>
+      <div class="meta-inputs">
+        <div>
+          <label>ID</label>
+          <input type="text" id="meta-id" value="ch-custom" />
+        </div>
+        <div>
+          <label>Num</label>
+          <input type="text" id="meta-num" value="01" />
+        </div>
+        <div>
+          <label>Tag</label>
+          <input type="text" id="meta-tag" value="BASICS" />
+        </div>
+        <div style="grid-column: span 3;">
+          <label>Chapter Title</label>
+          <input type="text" id="meta-title" value="My Custom Cryptography Chapter" />
+        </div>
+        <div style="grid-column: span 3;">
+          <label>Description</label>
+          <input type="text" id="meta-desc" value="Learn the basics of cryptographic implementations." />
+        </div>
+      </div>
+    </div>
+
+    <div class="palette">
+      <button class="btn" id="add-text">+ Text Block</button>
+      <button class="btn" id="add-formula">+ Formula Block</button>
+      <button class="btn" id="add-table">+ Table Block</button>
+      <button class="btn" id="add-exercise">+ Exercise Group</button>
+      <button class="btn" id="add-media">+ Media Block</button>
+      <button class="btn" id="add-custom">+ Custom Block</button>
+    </div>
+
+    <div class="forms-scroll" id="forms-container"></div>
+
+    <div style="padding: 12px; border-top: 1px solid #243040; background: #0e1318; display: flex; gap: 8px;">
+      <button class="btn" id="btn-export" style="border-color: #00e5aa; color: #00e5aa;">📋 Export Chapter Code</button>
+      <button class="btn" id="btn-import">📥 Import JSON</button>
+      <input type="file" id="file-import" accept=".json" style="display: none;" />
+    </div>
+  </div>
+
+  <!-- RIGHT: Live Preview Engine -->
+  <div class="preview-pane" id="preview-mount"></div>
+</div>
+
+<!-- EXPORT MODAL -->
+<div class="modal" id="export-modal">
+  <div class="modal-content">
+    <h3 style="color: #00e5aa; margin-bottom: 10px;">Generated Chapter Module Code</h3>
+    <textarea id="export-textarea" style="flex: 1; font-family: monospace; font-size: 0.8rem; margin-bottom: 12px; min-height: 250px;" readonly></textarea>
+    <div style="display: flex; gap: 8px; justify-content: flex-end;">
+      <button class="btn" id="btn-copy">Copy to Clipboard</button>
+      <button class="btn btn-danger" id="btn-close-modal">Close</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { buildChapterScreen } from './chapter-engine.js';
+
+  // ── Authoring State ──────────────────────────────────────────────────────
+  let chapterData = {
+    id: 'ch-custom',
+    num: '01',
+    tag: 'BASICS',
+    tagClass: 'tag-green',
+    title: 'My Custom Cryptography Chapter',
+    topbarTitle: 'My Custom Cryptography Chapter',
+    desc: 'Learn the basics of cryptographic implementations.',
+    concepts: ['Hashes', 'Ciphers'],
+    blocks: [
+      {
+        kind: 'text',
+        title: 'Introduction',
+        content: ['Welcome to this **interactive** module!', 'Work through the exercises below to test your understanding.']
+      }
+    ]
+  };
+
+  const formsContainer = document.getElementById('forms-container');
+  const previewMount = document.getElementById('preview-mount');
+
+  // Dummy Exercise Kit Context
+  const kitMock = {};
+
+  // ── Sync Metadata ────────────────────────────────────────────────────────
+  function syncMeta() {
+    chapterData.id = document.getElementById('meta-id').value;
+    chapterData.num = document.getElementById('meta-num').value;
+    chapterData.tag = document.getElementById('meta-tag').value;
+    chapterData.title = document.getElementById('meta-title').value;
+    chapterData.topbarTitle = chapterData.title;
+    chapterData.desc = document.getElementById('meta-desc').value;
+  }
+
+  ['meta-id', 'meta-num', 'meta-tag', 'meta-title', 'meta-desc'].forEach(id => {
+    document.getElementById(id).addEventListener('input', () => {
+      syncMeta();
+      renderPreview();
+    });
+  });
+
+  // ── Live Render Preview ──────────────────────────────────────────────────
+  function renderPreview() {
+    previewMount.innerHTML = '';
+    try {
+      const screen = buildChapterScreen(chapterData, kitMock);
+      
+      // Reset layout properties so it stays trapped inside the right preview pane
+      screen.style.position = 'relative';
+      screen.style.top = '0';
+      screen.style.left = '0';
+      screen.style.width = '100%';
+      screen.style.height = '100%';
+      screen.style.display = 'block';
+      screen.style.opacity = '1';
+      
+      previewMount.appendChild(screen);
+    } catch (err) {
+      console.error('Preview Render Error:', err);
+    }
+  }
+
+  // ── Render Form Controls ────────────────────────────────────────────────
+  function renderEditorForms() {
+    formsContainer.innerHTML = '';
+
+    chapterData.blocks.forEach((block, idx) => {
+      const card = document.createElement('div');
+      card.className = 'block-card';
+
+      // Block Action Header
+      const header = document.createElement('div');
+      header.className = 'block-card-header';
+      header.innerHTML = `
+        <span class="block-title-tag">#${idx + 1} - ${block.kind}</span>
+        <div class="card-actions">
+          <button class="btn btn-move-up" data-idx="${idx}">▲</button>
+          <button class="btn btn-move-down" data-idx="${idx}">▼</button>
+          <button class="btn btn-danger btn-delete" data-idx="${idx}">✖</button>
+        </div>
+      `;
+      card.appendChild(header);
+
+      // Render Block Form Controls by Kind
+      const body = document.createElement('div');
+      body.style.display = 'flex';
+      body.style.flexDirection = 'column';
+      body.style.gap = '8px';
+
+      if (block.kind === 'text') {
+        body.innerHTML = `
+          <div><label>Title</label><input type="text" class="text-title" value="${block.title || ''}" /></div>
+          <div><label>Content (One paragraph per line)</label>
+          <textarea class="text-content" rows="4">${(block.content || []).join('\n')}</textarea></div>
+        `;
+      } 
+      else if (block.kind === 'formula') {
+        body.innerHTML = `
+          <div><label>Title</label><input type="text" class="formula-title" value="${block.title || ''}" /></div>
+          <div><label>Formula Lines (One per line)</label>
+          <textarea class="formula-lines" rows="3">${(block.lines || []).join('\n')}</textarea></div>
+          <div><label>Note</label><input type="text" class="formula-note" value="${block.note || ''}" /></div>
+        `;
+      }
+      else if (block.kind === 'table') {
+        body.innerHTML = `
+          <div><label>Title</label><input type="text" class="table-title" value="${block.title || ''}" /></div>
+          <div><label>Columns (Comma-separated)</label>
+          <input type="text" class="table-cols" value="${(block.columns || []).join(', ')}" /></div>
+          <div><label>Rows (One row per line, values separated by pipe '|')</label>
+          <textarea class="table-rows" rows="3">${(block.rows || []).map(r => r.join(' | ')).join('\n')}</textarea></div>
+        `;
+      }
+      else if (block.kind === 'exerciseGroup') {
+        body.innerHTML = `
+          <div><label>Group Title</label><input type="text" class="exgroup-title" value="${block.title || ''}" /></div>
+          <div class="exercise-items-container"></div>
+          <button class="btn btn-add-ex-item" style="margin-top: 6px;">+ Add Exercise Item</button>
+        `;
+
+        // Render exercise items inside this group
+        const itemsContainer = body.querySelector('.exercise-items-container');
+        (block.items || []).forEach((item, exIdx) => {
+          const itemEl = document.createElement('div');
+          itemEl.className = 'nested-item';
+          itemEl.innerHTML = `
+            <div style="display:flex; justify-content: space-between; align-items:center; margin-bottom:4px;">
+              <strong style="font-size:0.75rem; color:#00e5aa;">Item ${item.num || exIdx + 1}</strong>
+              <button class="btn btn-danger btn-del-ex" data-exidx="${exIdx}">Delete</button>
+            </div>
+            <div><label>Num</label><input type="text" class="ex-num" value="${item.num || `E${exIdx+1}`}" /></div>
+            <div><label>Title</label><input type="text" class="ex-title" value="${item.title || ''}" /></div>
+            <div><label>Body Text</label><input type="text" class="ex-body" value="${item.bodyHtml || ''}" /></div>
+            <div><label>Hint</label><input type="text" class="ex-hint" value="${item.hint || ''}" /></div>
+            <div>
+              <label>Input Type</label>
+              <select class="ex-type">
+                <option value="text" ${item.input?.type==='text'?'selected':''}>Text</option>
+                <option value="hex" ${item.input?.type==='hex'?'selected':''}>Hex Byte</option>
+                <option value="mc" ${item.input?.type==='mc'?'selected':''}>Multiple Choice</option>
+              </select>
+            </div>
+            <div><label>Expected Answer (for simple check)</label><input type="text" class="ex-ans" value="${item.expectedAnswer || ''}" /></div>
+          `;
+
+          // Item Bindings
+          itemEl.querySelector('.ex-num').addEventListener('input', e => { item.num = e.target.value; renderPreview(); });
+          itemEl.querySelector('.ex-title').addEventListener('input', e => { item.title = e.target.value; renderPreview(); });
+          itemEl.querySelector('.ex-body').addEventListener('input', e => { item.bodyHtml = e.target.value; renderPreview(); });
+          itemEl.querySelector('.ex-hint').addEventListener('input', e => { item.hint = e.target.value; renderPreview(); });
+          itemEl.querySelector('.ex-type').addEventListener('change', e => {
+            if (!item.input) item.input = {};
+            item.input.type = e.target.value;
+            renderPreview();
+          });
+          itemEl.querySelector('.ex-ans').addEventListener('input', e => {
+            item.expectedAnswer = e.target.value;
+            item.check = (val) => ({
+              correct: String(val).toLowerCase() === String(item.expectedAnswer).toLowerCase(),
+              message: String(val).toLowerCase() === String(item.expectedAnswer).toLowerCase() ? 'Correct!' : 'Try again!'
+            });
+            renderPreview();
+          });
+
+          itemEl.querySelector('.btn-del-ex').addEventListener('click', () => {
+            block.items.splice(exIdx, 1);
+            renderEditorForms();
+            renderPreview();
+          });
+
+          itemsContainer.appendChild(itemEl);
+        });
+
+        body.querySelector('.btn-add-ex-item').addEventListener('click', () => {
+          if (!block.items) block.items = [];
+          block.items.push({
+            num: `E${block.items.length + 1}`,
+            title: 'New Question',
+            bodyHtml: 'Solve this challenge:',
+            input: { type: 'text', placeholder: 'Answer...' },
+            expectedAnswer: '42',
+            check: (val) => ({ correct: String(val) === '42', message: String(val) === '42' ? 'Correct!' : 'Incorrect' })
+          });
+          renderEditorForms();
+          renderPreview();
+        });
+      }
+      else if (block.kind === 'media') {
+        body.innerHTML = `
+          <div><label>Title</label><input type="text" class="media-title" value="${block.title || ''}" /></div>
+          <div><label>Image/Video Source URL</label><input type="text" class="media-src" value="${block.src || ''}" /></div>
+          <div><label>Caption</label><input type="text" class="media-caption" value="${block.caption || ''}" /></div>
+        `;
+      }
+      else if (block.kind === 'custom') {
+        body.innerHTML = `
+          <div><label>Title</label><input type="text" class="custom-title" value="${block.title || ''}" /></div>
+          <div><label>Custom HTML Markup</label>
+          <textarea class="custom-html" rows="4">${block.html || ''}</textarea></div>
+        `;
+      }
+
+      card.appendChild(body);
+
+      // Input Binding Listeners for Live Updates
+      card.addEventListener('input', () => {
+        if (block.kind === 'text') {
+          block.title = card.querySelector('.text-title').value;
+          block.content = card.querySelector('.text-content').value.split('\n').filter(Boolean);
+        } else if (block.kind === 'formula') {
+          block.title = card.querySelector('.formula-title').value;
+          block.lines = card.querySelector('.formula-lines').value.split('\n').filter(Boolean);
+          block.note = card.querySelector('.formula-note').value;
+        } else if (block.kind === 'table') {
+          block.title = card.querySelector('.table-title').value;
+          block.columns = card.querySelector('.table-cols').value.split(',').map(s => s.trim());
+          block.rows = card.querySelector('.table-rows').value.split('\n').map(row => row.split('|').map(s => s.trim()));
+        } else if (block.kind === 'exerciseGroup') {
+          block.title = card.querySelector('.exgroup-title').value;
+        } else if (block.kind === 'media') {
+          block.title = card.querySelector('.media-title').value;
+          block.src = card.querySelector('.media-src').value;
+          block.caption = card.querySelector('.media-caption').value;
+        } else if (block.kind === 'custom') {
+          block.title = card.querySelector('.custom-title').value;
+          block.html = card.querySelector('.custom-html').value;
+        }
+        renderPreview();
+      });
+
+      // Header Button Controls
+      card.querySelector('.btn-move-up').addEventListener('click', () => moveBlock(idx, -1));
+      card.querySelector('.btn-move-down').addEventListener('click', () => moveBlock(idx, 1));
+      card.querySelector('.btn-delete').addEventListener('click', () => deleteBlock(idx));
+
+      formsContainer.appendChild(card);
+    });
+  }
+
+  // ── Block Operations ─────────────────────────────────────────────────────
+  function moveBlock(idx, direction) {
+    const targetIdx = idx + direction;
+    if (targetIdx < 0 || targetIdx >= chapterData.blocks.length) return;
+    const temp = chapterData.blocks[idx];
+    chapterData.blocks[idx] = chapterData.blocks[targetIdx];
+    chapterData.blocks[targetIdx] = temp;
+    renderEditorForms();
+    renderPreview();
+  }
+
+  function deleteBlock(idx) {
+    chapterData.blocks.splice(idx, 1);
+    renderEditorForms();
+    renderPreview();
+  }
+
+  // Palette Actions
+  document.getElementById('add-text').addEventListener('click', () => {
+    chapterData.blocks.push({ kind: 'text', title: 'New Section', content: ['Write paragraphs here...'] });
+    renderEditorForms();
+    renderPreview();
+  });
+
+  document.getElementById('add-formula').addEventListener('click', () => {
+    chapterData.blocks.push({ kind: 'formula', title: 'Formula Title', lines: ['e = H(r || m)'], note: 'Note details...' });
+    renderEditorForms();
+    renderPreview();
+  });
+
+  document.getElementById('add-table').addEventListener('click', () => {
+    chapterData.blocks.push({ kind: 'table', title: 'Reference Table', columns: ['Name', 'Value'], rows: [['Variable A', '100'], ['Variable B', '200']] });
+    renderEditorForms();
+    renderPreview();
+  });
+
+  document.getElementById('add-exercise').addEventListener('click', () => {
+    chapterData.blocks.push({ kind: 'exerciseGroup', title: 'Practice Exercises', items: [] });
+    renderEditorForms();
+    renderPreview();
+  });
+
+  document.getElementById('add-media').addEventListener('click', () => {
+    chapterData.blocks.push({ kind: 'media', title: 'Diagram', src: 'https://via.placeholder.com/400x200', caption: 'Figure 1.1' });
+    renderEditorForms();
+    renderPreview();
+  });
+
+  document.getElementById('add-custom').addEventListener('click', () => {
+    chapterData.blocks.push({ kind: 'custom', title: 'Interactive Widget', html: '<div class="ex-data-block">Custom Interactive Component Node</div>' });
+    renderEditorForms();
+    renderPreview();
+  });
+
+  // ── Import / Export Logic ───────────────────────────────────────────────
+  const modal = document.getElementById('export-modal');
+  const exportTextarea = document.getElementById('export-textarea');
+
+  document.getElementById('btn-export').addEventListener('click', () => {
+    syncMeta();
+    const code = `// ${chapterData.id}.js - Auto-generated Chapter Module\n\nexport const ${chapterData.id.replace(/-/g, '_')} = ${JSON.stringify(chapterData, null, 2)};`;
+    exportTextarea.value = code;
+    modal.classList.add('active');
+  });
+
+  document.getElementById('btn-close-modal').addEventListener('click', () => {
+    modal.classList.remove('active');
+  });
+
+  document.getElementById('btn-copy').addEventListener('click', () => {
+    navigator.clipboard.writeText(exportTextarea.value);
+    alert('Code copied to clipboard!');
+  });
+
+  // Close modal if user clicks outside content box
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) modal.classList.remove('active');
+  });
+
+  // JSON Import
+  const fileInput = document.getElementById('file-import');
+  document.getElementById('btn-import').addEventListener('click', () => fileInput.click());
+
+  fileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const imported = JSON.parse(event.target.result);
+        chapterData = imported;
+        document.getElementById('meta-id').value = chapterData.id || '';
+        document.getElementById('meta-num').value = chapterData.num || '';
+        document.getElementById('meta-tag').value = chapterData.tag || '';
+        document.getElementById('meta-title').value = chapterData.title || '';
+        document.getElementById('meta-desc').value = chapterData.desc || '';
+        renderEditorForms();
+        renderPreview();
+      } catch (err) {
+        alert('Invalid JSON file format.');
+      }
+    };
+    reader.readAsText(file);
+  });
+
+  // Initial Boot
+  syncMeta();
+  renderEditorForms();
+  renderPreview();
+</script>
+</body>
+</html>

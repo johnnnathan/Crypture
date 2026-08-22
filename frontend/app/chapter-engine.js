@@ -1,4 +1,4 @@
-// js/chapter-engine.js
+// /chapter-engine.js
 
 import {
   parseBinaryByte, parseHexByte, parseIntLoose, parseTextExact,
@@ -332,7 +332,7 @@ function renderBlock(chapter, idx, block) {
   }
 }
 
-function buildChapterScreen(chapter, kit) {
+export function buildChapterScreen(chapter, kit) {
   const screen = el(`<div id="screen-ch-${chapter.id}" class="screen">
     <nav class="topbar">
       <button class="tb-back" data-nav="exercises">
