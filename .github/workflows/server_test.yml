@@ -40,9 +40,7 @@ jobs:
 
       - name: Build WASM and Engine Packages
         run: |
-          ./tools/build_challenge_engine.sh
-          ./tools/build_crypto_engine.sh
-          ./tools/build_python_challenge_engine.sh
+          ./tools/setup.sh
 
 
       - name: Start Web Server and Run Integration Tests
