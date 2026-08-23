@@ -18,3 +18,5 @@ getrandom = { version = "0.2", features = ["js"] }
 [lib]
 crate-type = ["cdylib", "rlib"]
 
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
