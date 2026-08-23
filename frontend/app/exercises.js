@@ -9,6 +9,7 @@ import aesPages from "./chapters/aes/index.js"
 import hashPages from "./chapters/hash/index.js"
 import schnorrPages from "./chapters/schnorr/index.js"
 import eccPages from "./chapters/ecc/index.js"
+import rsaPages from "./chapters/rsa/index.js"
 import testPages from "./chapters/test/index.js"
 
 function showScreen(id) {
@@ -33,6 +34,7 @@ export function initExercises(CircuitWasm) {
         ...hashPages,
         ...schnorrPages, 
         ...eccPages,
+        ...rsaPages,
         ...testPages,
     ];
 
