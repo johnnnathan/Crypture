@@ -1,16 +1,27 @@
 // exercises.js
 import { initChapterSystem } from "./chapter-engine.js";
 
-import chapter0 from "./chapters/info/index.js"
+import chapter0 from "./chapters/info/index.js";
 import xorPages from "./chapters/xor/index.js";
 import caesarPages from "./chapters/caesar/index.js";
-import blockPages from "./chapters/blocks/index.js"
-import aesPages from "./chapters/aes/index.js"
-import hashPages from "./chapters/hash/index.js"
-import schnorrPages from "./chapters/schnorr/index.js"
-import eccPages from "./chapters/ecc/index.js"
-import rsaPages from "./chapters/rsa/index.js"
-import testPages from "./chapters/test/index.js"
+import blockPages from "./chapters/blocks/index.js";
+import aesPages from "./chapters/aes/index.js";
+import hashPages from "./chapters/hash/index.js";
+import schnorrPages from "./chapters/schnorr/index.js";
+import eccPages from "./chapters/ecc/index.js";
+import rsaPages from "./chapters/rsa/index.js";
+import testPages from "./chapters/test/index.js";
+
+// Palette to cycle through for each folder group
+const PALETTE = [
+  { color: '#00e5aa', glow: 'rgba(0, 229, 170, 0.15)' },  // Mint Green
+  { color: '#4db8ff', glow: 'rgba(77, 184, 255, 0.15)' },  // Cyan
+  { color: '#ff8c42', glow: 'rgba(255, 140, 66, 0.15)' },  // Amber
+  { color: '#c084fc', glow: 'rgba(192, 132, 252, 0.15)' }, // Purple
+  { color: '#2ed573', glow: 'rgba(46, 213, 115, 0.15)' },  // Neon Green
+  { color: '#ff4757', glow: 'rgba(255, 71, 87, 0.15)' },   // Coral Red
+  { color: '#eccc68', glow: 'rgba(236, 204, 104, 0.15)' },  // Yellow/Gold
+];
 
 function showScreen(id) {
     document.querySelectorAll(".screen").forEach(screen => {
@@ -24,19 +35,28 @@ function showScreen(id) {
 }
 
 export function initExercises(CircuitWasm) {
-    // Spread the exported arrays so 'chapters' is a single flat array of objects
-    const chapters = [
-        ...chapter0,
-        ...xorPages,
-        ...caesarPages,
-        ...blockPages,
-        ...aesPages,
-        ...hashPages,
-        ...schnorrPages, 
-        ...eccPages,
-        ...rsaPages,
-        ...testPages,
+    // Group folder imports in an array
+    const folderGroups = [
+        chapter0,
+        xorPages,
+        caesarPages,
+        blockPages,
+        aesPages,
+        hashPages,
+        schnorrPages, 
+        eccPages,
+        rsaPages,
+        testPages,
     ];
+
+    // Assign one color per folder group, then flatten
+    const chapters = folderGroups.flatMap((group, folderIdx) => {
+        const theme = PALETTE[folderIdx % PALETTE.length];
+        return group.map(ch => ({
+            ...ch,
+            theme // Attaches the exact folder theme to every chapter in this folder
+        }));
+    });
 
     const listContainer = document.getElementById("exercise-list");
 

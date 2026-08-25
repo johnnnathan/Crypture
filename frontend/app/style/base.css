@@ -31,14 +31,14 @@
 
   /* Node type colors */
   --xor:     #00e5aa;
-  --sbox:    #4db8ff;
+  --block-cipher:    #4db8ff;
   --caesar:  #ff8c42;
-  --vig:     #c084fc;
+  --ecc:     #c084fc;
 
   --xor-dim:     rgba(0, 229, 170, 0.15);
-  --sbox-dim:    rgba(77, 184, 255, 0.15);
+  --block-cipher-dim:    rgba(77, 184, 255, 0.15);
   --caesar-dim:  rgba(255, 140, 66, 0.15);
-  --vig-dim:     rgba(192, 132, 252, 0.15);
+  --ecc-dim:     rgba(192, 132, 252, 0.15);
 
   --font-display: 'Orbitron', monospace;
   --font-mono:    'IBM Plex Mono', 'Share Tech Mono', monospace;

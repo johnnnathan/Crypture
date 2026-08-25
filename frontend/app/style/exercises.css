@@ -1,7 +1,5 @@
 /* ═══════════════════════════════════════════════════
-   CRYPTOCIRCUIT — Exercises screens
-   Covers: list screen, exercise pages, typography,
-           tables, demos, inputs, feedback, SHA visuals
+   Crypture — Exercises screens
 ═══════════════════════════════════════════════════ */
 
 /* ── Exercise list screen ───────────────────────── */
@@ -47,7 +45,7 @@
 
 .ex-list-card:hover { 
   background: var(--bg-raised); 
-  border-color: var(--border-hi); 
+  border-color: var(--card-color, var(--border-hi)); 
   transform: translateX(4px); 
 }
 
@@ -78,11 +76,8 @@
   min-width: 3px;
   align-self: stretch; 
   flex-shrink: 0; 
+  background: var(--card-color, var(--accent));
 }
-
-.ex-card-color.xor    { background: var(--xor); }
-.ex-card-color.caesar { background: var(--caesar); }
-.ex-card-color.sbox   { background: var(--sbox); }
 
 .ex-card-body { 
   padding: 20px 24px; 
@@ -92,26 +87,26 @@
   display: inline-block; font-size: 9px; padding: 2px 8px;
   border-radius: 2px; font-weight: 500; letter-spacing: 1px;
   text-transform: uppercase; margin-bottom: 8px; border: 1px solid;
+  color: var(--card-color, var(--accent));
+  border-color: var(--card-color, var(--accent));
+  background: var(--card-glow, var(--accent-glow));
 }
-.ex-card-tag.xor    { color: var(--xor);    border-color: var(--xor);    background: var(--xor-dim); }
-.ex-card-tag.caesar { color: var(--caesar);  border-color: var(--caesar);  background: var(--caesar-dim); }
-.ex-card-tag.sbox   { color: var(--sbox);    border-color: var(--sbox);    background: var(--sbox-dim); }
 .ex-card-title { font-family: var(--font-display); font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; }
 .ex-card-desc  { font-size: 11px; color: var(--text-secondary); line-height: 1.7; margin-bottom: 10px; }
 .ex-card-concepts { display: flex; gap: 6px; flex-wrap: wrap; }
 .ex-card-concepts span { font-size: 9px; color: var(--text-dim); border: 1px solid var(--border-dim); padding: 2px 7px; border-radius: 2px; }
 .ex-card-arrow { font-size: 18px; color: var(--text-dim); padding: 0 20px; flex-shrink: 0; transition: color 0.15s, transform 0.15s; }
-.ex-list-card:hover .ex-card-arrow { color: var(--accent); transform: translateX(4px); }
+.ex-list-card:hover .ex-card-arrow { color: var(--card-color, var(--accent)); transform: translateX(4px); }
 
 /* ── Topbar tag ─────────────────────────────────── */
 .ex-tag {
   font-size: 9px; padding: 3px 10px; border-radius: 2px;
   font-weight: 500; letter-spacing: 1px; text-transform: uppercase;
   margin-right: 12px; border: 1px solid;
+  color: var(--card-color, var(--accent));
+  border-color: var(--card-color, var(--accent));
+  background: var(--card-glow, var(--accent-glow));
 }
-.ex-tag.xor    { color: var(--xor);    border-color: var(--xor);    background: var(--xor-dim); }
-.ex-tag.caesar { color: var(--caesar);  border-color: var(--caesar);  background: var(--caesar-dim); }
-.ex-tag.sbox   { color: var(--sbox);    border-color: var(--sbox);    background: var(--sbox-dim); }
 
 /* ── Exercise page (scrollable body) ────────────── */
 .ex-page {

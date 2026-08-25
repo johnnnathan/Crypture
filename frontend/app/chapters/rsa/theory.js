@@ -366,7 +366,7 @@ export const rsaTheoryChapter = {
             const div = document.createElement('div');
             div.className = match ? 'rsa-success' : 'rsa-fail';
             div.textContent = match
-              ? `🎉 Recovered message = ${trace.result} — matches your original! The private key undid exactly what the public key locked.`
+              ? `Recovered message = ${trace.result} — matches your original! The private key undid exactly what the public key locked.`
               : `❌ Recovered ${trace.result}, expected ${state.m}. Try regenerating keys and locking again.`;
             decryptResultEl.appendChild(div);
           });

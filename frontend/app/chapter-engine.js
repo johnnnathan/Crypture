@@ -1,4 +1,4 @@
-// /chapter-engine.js
+// chapter-engine.js
 
 import {
   parseBinaryByte, parseHexByte, parseIntLoose, parseTextExact,
@@ -16,6 +16,12 @@ const DEFAULT_PARSERS = {
   mc: (v) => (v ? String(v).trim() : null),
 };
 
+const DEFAULT_THEME = { color: '#00e5aa', glow: 'rgba(0, 229, 170, 0.15)' };
+
+function getTheme(chapter) {
+  return chapter?.theme || DEFAULT_THEME;
+}
+
 // ── Formatting & Helper Utilities ─────────────────────────────────────────
 
 export function el(html) { 
@@ -30,9 +36,6 @@ export function esc(s) {
   }[c]));
 }
 
-/**
- * Converts **bold** and `code` syntax into clean HTML.
- */
 export function parseInlineMarkdown(str) {
   if (!str) return '';
   return String(str)
@@ -40,9 +43,6 @@ export function parseInlineMarkdown(str) {
     .replace(/`(.*?)`/g, '<code>$1</code>');
 }
 
-/**
- * Functional paragraph builder exported for chapter files.
- */
 export function p(text) {
   return parseInlineMarkdown(text);
 }
@@ -56,7 +56,6 @@ function renderTextBlock(b) {
   
   let contentHtml = '';
 
-  // Handle array-based content format
   if (Array.isArray(b.content)) {
     contentHtml = b.content.map(item => {
       if (typeof item === 'string') {
@@ -78,7 +77,6 @@ function renderTextBlock(b) {
       return '';
     }).join('');
   } 
-  // Fallback for legacy b.html string property
   else if (b.html) {
     contentHtml = b.html;
   }
@@ -333,7 +331,10 @@ function renderBlock(chapter, idx, block) {
 }
 
 export function buildChapterScreen(chapter, kit) {
-  const screen = el(`<div id="screen-ch-${chapter.id}" class="screen">
+  const theme = getTheme(chapter);
+  const inlineStyles = `style="--card-color: ${theme.color}; --card-glow: ${theme.glow};"`;
+
+  const screen = el(`<div id="screen-ch-${chapter.id}" class="screen" ${inlineStyles}>
     <nav class="topbar">
       <button class="tb-back" data-nav="exercises">
         <svg width="14" height="14" viewBox="0 0 14 14"><path d="M9 2L4 7l5 5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -364,23 +365,27 @@ export function buildChapterScreen(chapter, kit) {
   return screen;
 }
 
-// ── Public API ────────────────────────────────────────────────────────────
-
 export function initChapterSystem({ chapters, listContainer, screenRoot, showScreen, kit = {} }) {
   const built = new Map();
 
-  listContainer.innerHTML = chapters.map((ch) => `
-    <div class="ex-list-card" data-chapter-id="${ch.id}">
-      <div class="ex-card-num">${esc(ch.num)}</div>
-      <div class="ex-card-color ${esc(ch.tagClass || '')}"></div>
-      <div class="ex-card-body">
-        <div class="ex-card-tag ${esc(ch.tagClass || '')}">${esc(ch.tag || '')}</div>
-        <div class="ex-card-title">${esc(ch.title)}</div>
-        <div class="ex-card-desc">${esc(ch.desc)}</div>
-        <div class="ex-card-concepts">${(ch.concepts || []).map(c => `<span>${esc(c)}</span>`).join('')}</div>
-      </div>
-      <div class="ex-card-arrow">→</div>
-    </div>`).join('');
+  listContainer.innerHTML = chapters.map((ch, idx) => {
+    const dynamicNum = String(idx + 1).padStart(2, '0');
+    const theme = getTheme(ch);
+    const inlineStyles = `style="--card-color: ${theme.color}; --card-glow: ${theme.glow};"`;
+
+    return `
+      <div class="ex-list-card" data-chapter-id="${ch.id}" ${inlineStyles}>
+        <div class="ex-card-num">${dynamicNum}</div>
+        <div class="ex-card-color"></div>
+        <div class="ex-card-body">
+          <div class="ex-card-tag">${esc(ch.tag || '')}</div>
+          <div class="ex-card-title">${esc(ch.title)}</div>
+          <div class="ex-card-desc">${esc(ch.desc)}</div>
+          <div class="ex-card-concepts">${(ch.concepts || []).map(c => `<span>${esc(c)}</span>`).join('')}</div>
+        </div>
+        <div class="ex-card-arrow">→</div>
+      </div>`;
+  }).join('');
 
   function openChapter(id) {
     const chapter = chapters.find(c => c.id === id);
