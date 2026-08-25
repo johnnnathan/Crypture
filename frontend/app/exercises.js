@@ -10,7 +10,7 @@ import hashPages from "./chapters/hash/index.js";
 import schnorrPages from "./chapters/schnorr/index.js";
 import eccPages from "./chapters/ecc/index.js";
 import rsaPages from "./chapters/rsa/index.js";
-import testPages from "./chapters/test/index.js";
+//import testPages from "./chapters/test/index.js";
 
 const PALETTE = [
   { color: '#00e5aa', glow: 'rgba(0, 229, 170, 0.15)' },  // Mint Green
@@ -44,7 +44,7 @@ export function initExercises(CircuitWasm) {
         schnorrPages, 
         eccPages,
         rsaPages,
-        testPages,
+        //testPages,
     ];
 
     // Assign one color and a X.Y index per folder and sub-page
