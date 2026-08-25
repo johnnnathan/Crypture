@@ -369,7 +369,8 @@ export function initChapterSystem({ chapters, listContainer, screenRoot, showScr
   const built = new Map();
 
   listContainer.innerHTML = chapters.map((ch, idx) => {
-    const dynamicNum = String(idx + 1).padStart(2, '0');
+    // Fallback to global index if displayNum isn't explicitly set
+    const dynamicNum = ch.displayNum || String(idx + 1).padStart(2, '0');
     const theme = getTheme(ch);
     const inlineStyles = `style="--card-color: ${theme.color}; --card-glow: ${theme.glow};"`;
 

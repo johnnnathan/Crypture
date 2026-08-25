@@ -12,7 +12,6 @@ import eccPages from "./chapters/ecc/index.js";
 import rsaPages from "./chapters/rsa/index.js";
 import testPages from "./chapters/test/index.js";
 
-// Palette to cycle through for each folder group
 const PALETTE = [
   { color: '#00e5aa', glow: 'rgba(0, 229, 170, 0.15)' },  // Mint Green
   { color: '#4db8ff', glow: 'rgba(77, 184, 255, 0.15)' },  // Cyan
@@ -35,7 +34,6 @@ function showScreen(id) {
 }
 
 export function initExercises(CircuitWasm) {
-    // Group folder imports in an array
     const folderGroups = [
         chapter0,
         xorPages,
@@ -49,13 +47,19 @@ export function initExercises(CircuitWasm) {
         testPages,
     ];
 
-    // Assign one color per folder group, then flatten
+    // Assign one color and a X.Y index per folder and sub-page
     const chapters = folderGroups.flatMap((group, folderIdx) => {
         const theme = PALETTE[folderIdx % PALETTE.length];
-        return group.map(ch => ({
-            ...ch,
-            theme // Attaches the exact folder theme to every chapter in this folder
-        }));
+        const folderNum = String(folderIdx + 1).padStart(2, '0'); // e.g. "01"
+
+        return group.map((ch, pageIdx) => {
+            const pageNum = pageIdx + 1; // e.g. 1, 2, 3
+            return {
+                ...ch,
+                theme,
+                displayNum: `${folderNum}.${pageNum}` // Outputs "01.1", "01.2", "02.1", etc.
+            };
+        });
     });
 
     const listContainer = document.getElementById("exercise-list");
