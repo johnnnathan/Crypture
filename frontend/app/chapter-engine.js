@@ -341,7 +341,7 @@ export function buildChapterScreen(chapter, kit) {
         Exercises
       </button>
       <div class="tb-divider"></div>
-      <div class="tb-title">${esc(chapter.topbarTitle || chapter.title)}</div>
+      <div class="tb-title">${esc(chapter.title)}</div>
       <div class="tb-spacer"></div>
       <div class="ex-tag ${esc(chapter.tagClass || '')}">${esc(chapter.tag || '')}</div>
     </nav>

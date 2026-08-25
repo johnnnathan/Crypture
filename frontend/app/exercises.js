@@ -10,7 +10,7 @@ import hashPages from "./chapters/hash/index.js";
 import schnorrPages from "./chapters/schnorr/index.js";
 import eccPages from "./chapters/ecc/index.js";
 import rsaPages from "./chapters/rsa/index.js";
-//import testPages from "./chapters/test/index.js";
+import testPages from "./chapters/test/index.js";
 
 const PALETTE = [
   { color: '#00e5aa', glow: 'rgba(0, 229, 170, 0.15)' },  // Mint Green
@@ -21,6 +21,10 @@ const PALETTE = [
   { color: '#ff4757', glow: 'rgba(255, 71, 87, 0.15)' },   // Coral Red
   { color: '#eccc68', glow: 'rgba(236, 204, 104, 0.15)' },  // Yellow/Gold
 ];
+
+
+// Import generated debug config (or inline window fallback)
+const IS_DEBUG = window.APP_CONFIG?.DEBUG ?? false;
 
 function showScreen(id) {
     document.querySelectorAll(".screen").forEach(screen => {
@@ -33,7 +37,9 @@ function showScreen(id) {
     }
 }
 
+
 export function initExercises(CircuitWasm) {
+    // Base production chapters
     const folderGroups = [
         chapter0,
         xorPages,
@@ -44,30 +50,26 @@ export function initExercises(CircuitWasm) {
         schnorrPages, 
         eccPages,
         rsaPages,
-        //testPages,
     ];
 
-    // Assign one color and a X.Y index per folder and sub-page
+    // Inject test pages ONLY when in debug mode
+    if (IS_DEBUG) {
+        folderGroups.push(testPages);
+    }
+
     const chapters = folderGroups.flatMap((group, folderIdx) => {
         const theme = PALETTE[folderIdx % PALETTE.length];
-        const folderNum = String(folderIdx + 1).padStart(2, '0'); // e.g. "01"
+        const folderNum = String(folderIdx + 1).padStart(2, '0');
 
-        return group.map((ch, pageIdx) => {
-            const pageNum = pageIdx + 1; // e.g. 1, 2, 3
-            return {
-                ...ch,
-                theme,
-                displayNum: `${folderNum}.${pageNum}` // Outputs "01.1", "01.2", "02.1", etc.
-            };
-        });
+        return group.map((ch, pageIdx) => ({
+            ...ch,
+            theme,
+            displayNum: `${folderNum}.${pageIdx + 1}`
+        }));
     });
 
     const listContainer = document.getElementById("exercise-list");
-
-    if (!listContainer) {
-        console.error("Missing #exercise-list");
-        return;
-    }
+    if (!listContainer) return;
 
     initChapterSystem({
         chapters,

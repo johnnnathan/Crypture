@@ -1,22 +1,29 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Move to root directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-echo "Starting CTF Platform Server..."
+DEBUG_MODE=false
+for arg in "$@"; do
+  if [ "$arg" == "--debug" ] || [ "$arg" == "-d" ]; then
+    DEBUG_MODE=true
+    break
+  fi
+done
 
-# Move to python engine directory
-cd "$ROOT_DIR/challenge-engine/python"
+# Write config.js file for the frontend to read
+CONFIG_FILE="$ROOT_DIR/frontend/app/config.js"
 
-# Check if uvicorn is installed
-if ! command -v uvicorn &> /dev/null; then
-    echo "❌ Error: uvicorn is not installed in the active environment."
-    echo "Run 'pip install uvicorn fastapi' to install dependencies."
-    exit 1
+if [ "$DEBUG_MODE" = true ]; then
+    echo "🐛 DEBUG MODE ENABLED"
+    echo "window.APP_CONFIG = { DEBUG: true };" > "$CONFIG_FILE"
+else
+    echo "🚀 PRODUCTION MODE"
+    echo "window.APP_CONFIG = { DEBUG: false };" > "$CONFIG_FILE"
 fi
 
-# Run the server using Uvicorn
-echo "Serving frontend & API on http://localhost:8000..."
+echo "Starting CTF Platform Server..."
+cd "$ROOT_DIR/challenge-engine/python"
+
 exec uvicorn server:app --reload --port 8000
