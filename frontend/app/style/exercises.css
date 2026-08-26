@@ -98,6 +98,33 @@
 .ex-card-arrow { font-size: 18px; color: var(--text-dim); padding: 0 20px; flex-shrink: 0; transition: color 0.15s, transform 0.15s; }
 .ex-list-card:hover .ex-card-arrow { color: var(--card-color, var(--accent)); transform: translateX(4px); }
 
+.tb-chapter-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 16px;
+}
+
+.tb-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tb-nav-btn:hover {
+  background: var(--card-glow);
+  border-color: var(--card-color);
+  color: var(--card-color);
+}
+
 /* ── Topbar tag ─────────────────────────────────── */
 .ex-tag {
   font-size: 9px; padding: 3px 10px; border-radius: 2px;

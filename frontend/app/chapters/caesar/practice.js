@@ -2,7 +2,7 @@
 import { hex, parseDecByte } from '../../exercise-kit.js';
 
 export const caesarPractice= {
-  id: 'caesar',
+  id: 'caesar-practice',
   num: '02.2',
   tag: 'Caesar',
   tagClass: 'caesar',

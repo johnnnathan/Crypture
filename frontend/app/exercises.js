@@ -37,7 +37,6 @@ function showScreen(id) {
     }
 }
 
-
 export function initExercises(CircuitWasm) {
     const folderGroups = [
         chapter0,
@@ -60,18 +59,42 @@ export function initExercises(CircuitWasm) {
         const folderNum = String(folderIdx + 1).padStart(2, '0');
 
         return group.map((ch, pageIdx) => {
-            // First page gets 'X', subsequent pages get 'X.Y'
-            const displayNum = pageIdx === 0 
-                ? folderNum 
-                : `${folderNum}.${pageIdx}`;
+            const displayNum = pageIdx === 0 ? folderNum : `${folderNum}.${pageIdx}`;
+            
+            // Guarantee a unique fallback ID if ch.id is missing or duplicated
+            const uniqueId = ch.id ? String(ch.id) : `ch-${folderNum}-${pageIdx}`;
 
             return {
                 ...ch,
+                id: uniqueId,
                 theme,
                 displayNum
             };
         });
     });
+
+    // 🐛 DEBUG ONLY: Print chapter table & check for duplicate IDs
+    if (IS_DEBUG) {
+        console.group("🐛 Debug Info: Registered Chapters");
+        
+        console.table(chapters.map(c => ({
+            "Num": c.displayNum,
+            "ID": c.id,
+            "Title": c.title,
+            "Tag": c.tag || "N/A"
+        })));
+
+        // Warning check for duplicate IDs
+        const idSet = new Set();
+        chapters.forEach(c => {
+            if (idSet.has(c.id)) {
+                console.warn(`⚠️ DUPLICATE ID FOUND: "${c.id}" (Display Num: ${c.displayNum})`);
+            }
+            idSet.add(c.id);
+        });
+
+        console.groupEnd();
+    }
 
     const listContainer = document.getElementById("exercise-list");
     if (!listContainer) return;

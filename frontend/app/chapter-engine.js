@@ -328,10 +328,31 @@ function renderBlock(chapter, idx, block) {
   }
 }
 
-export function buildChapterScreen(chapter, kit) {
+export function buildChapterScreen(chapter, kit, chapters = []) {
   const theme = getTheme(chapter);
   const inlineStyles = `style="--card-color: ${theme.color}; --card-glow: ${theme.glow};"`;
 
+  // 1. Find index of current chapter in the master list
+  const currentIndex = chapters.findIndex(c => c.id === chapter.id);
+  const prevChapter = currentIndex > 0 ? chapters[currentIndex - 1] : null;
+  const nextChapter = (currentIndex >= 0 && currentIndex < chapters.length - 1) ? chapters[currentIndex + 1] : null;
+
+  // 2. Build Next / Prev buttons HTML
+  const prevBtnHtml = prevChapter
+    ? `<button class="tb-nav-btn tb-prev" data-nav-ch="${prevChapter.id}" title="${esc(prevChapter.title)}">
+        <svg width="14" height="14" viewBox="0 0 14 14"><path d="M9 2L4 7l5 5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Prev (${esc(prevChapter.displayNum)})</span>
+       </button>`
+    : '';
+
+  const nextBtnHtml = nextChapter
+    ? `<button class="tb-nav-btn tb-next" data-nav-ch="${nextChapter.id}" title="${esc(nextChapter.title)}">
+        <span>Next (${esc(nextChapter.displayNum)})</span>
+        <svg width="14" height="14" viewBox="0 0 14 14"><path d="M5 2l5 5-5 5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+       </button>`
+    : '';
+
+  // 3. Render Screen with Topbar Nav Controls
   const screen = el(`<div id="screen-ch-${chapter.id}" class="screen" ${inlineStyles}>
     <nav class="topbar">
       <button class="tb-back" data-nav="exercises">
@@ -341,6 +362,13 @@ export function buildChapterScreen(chapter, kit) {
       <div class="tb-divider"></div>
       <div class="tb-title">${esc(chapter.title)}</div>
       <div class="tb-spacer"></div>
+      
+      <!-- In-page Navigation Controls -->
+      <div class="tb-chapter-nav">
+        ${prevBtnHtml}
+        ${nextBtnHtml}
+      </div>
+
       <div class="ex-tag ${esc(chapter.tagClass || '')}">${esc(chapter.tag || '')}</div>
     </nav>
     <div class="ex-page"></div>
@@ -364,34 +392,39 @@ export function buildChapterScreen(chapter, kit) {
 }
 
 // ── Initialization & Accordion System ─────────────────────────────────────
-
 export function initChapterSystem({ chapters, listContainer, screenRoot, showScreen, kit = {} }) {
   const built = new Map();
 
   function openChapter(id) {
-    const chapter = chapters.find(c => c.id === id);
-    if (!chapter) return;
-    if (!built.has(id)) {
-      const screen = buildChapterScreen(chapter, kit);
-      screenRoot.appendChild(screen);
-      built.set(id, screen);
+    // Loose comparison (==) or String conversion handles string/number ID mismatches
+    const chapter = chapters.find(c => String(c.id) === String(id));
+    if (!chapter) {
+      console.warn(`Chapter with id "${id}" not found.`);
+      return;
     }
-    showScreen(`screen-ch-${id}`);
+    
+    if (!built.has(chapter.id)) {
+      const screen = buildChapterScreen(chapter, kit, chapters);
+      screenRoot.appendChild(screen);
+      built.set(chapter.id, screen);
+    }
+    showScreen(`screen-ch-${chapter.id}`);
   }
 
-  // 1. Group chapters by folder prefix (e.g., "01", "02")
+  // Group chapters accurately by extracting the leading folder number
   const folderGroups = {};
-  chapters.forEach((ch, idx) => {
-    const displayNum = ch.displayNum || String(idx + 1).padStart(2, '0');
-    const folderKey = displayNum.includes('.') ? displayNum.split('.')[0] : displayNum;
+  chapters.forEach((ch) => {
+    // Splits "03.1" into "03", or keeps "03" as "03"
+    const rawPrefix = String(ch.displayNum).split('.')[0];
+    const folderKey = rawPrefix.padStart(2, '0'); 
 
     if (!folderGroups[folderKey]) {
       folderGroups[folderKey] = [];
     }
-    folderGroups[folderKey].push({ ...ch, displayNum });
+    folderGroups[folderKey].push(ch);
   });
 
-  // 2. Render Accordion Items
+  // Render Accordion List
   listContainer.innerHTML = '';
   
   Object.keys(folderGroups).forEach(folderKey => {
@@ -425,29 +458,27 @@ export function initChapterSystem({ chapters, listContainer, screenRoot, showScr
       </div>
     `);
 
-    // 3. Header Click Event: Accordion Toggle
+    // Toggle dropdown
     const header = groupEl.querySelector('.folder-header');
     header.addEventListener('click', () => {
       const isAlreadyOpen = groupEl.classList.contains('open');
 
-      // Collapse all other expanded accordion groups
       listContainer.querySelectorAll('.ex-folder-group').forEach(otherGroup => {
         otherGroup.classList.remove('open');
         const dropdown = otherGroup.querySelector('.folder-dropdown');
         if (dropdown) dropdown.style.display = 'none';
       });
 
-      // Expand clicked group if it wasn't already open
       if (!isAlreadyOpen) {
         groupEl.classList.add('open');
         groupEl.querySelector('.folder-dropdown').style.display = 'block';
       }
     });
 
-    // 4. Sub-item Click Event: Direct Navigation
+    // Sub-item click
     groupEl.querySelectorAll('.folder-item').forEach(item => {
       item.addEventListener('click', (e) => {
-        e.stopPropagation(); // Prevents parent folder collapse on sub-item click
+        e.stopPropagation();
         const chapterId = item.getAttribute('data-chapter-id');
         openChapter(chapterId);
       });
@@ -456,11 +487,21 @@ export function initChapterSystem({ chapters, listContainer, screenRoot, showScr
     listContainer.appendChild(groupEl);
   });
 
-  // Global Back Navigation
+  // Delegated event listener for Topbar Prev/Next buttons
   screenRoot.addEventListener('click', (e) => {
     const back = e.target.closest('[data-nav="exercises"]');
-    if (back) showScreen('screen-exercises');
+    if (back) {
+      showScreen('screen-exercises');
+      return;
+    }
+
+    const navBtn = e.target.closest('[data-nav-ch]');
+    if (navBtn) {
+      const targetId = navBtn.getAttribute('data-nav-ch');
+      openChapter(targetId);
+    }
   });
 
   return { openChapter };
 }
+
