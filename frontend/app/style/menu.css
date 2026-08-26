@@ -106,3 +106,69 @@
 .prim-chip.sbox     { color: var(--sbox);    border-color: var(--sbox);    background: var(--sbox-dim); }
 .prim-chip.caesar   { color: var(--caesar);  border-color: var(--caesar);  background: var(--caesar-dim); }
 .prim-chip.vigenere { color: var(--vig);     border-color: var(--vig);     background: var(--vig-dim); }
+.exercise-folder-group {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  margin-bottom: 12px;
+  background: rgba(15, 20, 28, 0.6);
+  overflow: hidden;
+  transition: border-color 0.2s ease;
+}
+
+.exercise-folder-group.open {
+  border-color: var(--card-color);
+  box-shadow: 0 0 12px var(--card-glow);
+}
+
+.folder-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.folder-header-main {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.folder-num {
+  font-family: monospace;
+  font-weight: bold;
+  color: var(--card-color);
+}
+
+.folder-chevron {
+  transition: transform 0.2s ease;
+}
+
+.exercise-folder-group.open .folder-chevron {
+  transform: rotate(180deg);
+}
+
+/* Dropdown list items */
+.folder-dropdown {
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.folder-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px 12px 32px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.folder-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.folder-item .item-num {
+  font-size: 0.85em;
+  opacity: 0.7;
+}

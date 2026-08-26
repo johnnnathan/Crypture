@@ -39,7 +39,6 @@ function showScreen(id) {
 
 
 export function initExercises(CircuitWasm) {
-    // Base production chapters
     const folderGroups = [
         chapter0,
         xorPages,
@@ -52,7 +51,6 @@ export function initExercises(CircuitWasm) {
         rsaPages,
     ];
 
-    // Inject test pages ONLY when in debug mode
     if (IS_DEBUG) {
         folderGroups.push(testPages);
     }
@@ -61,11 +59,18 @@ export function initExercises(CircuitWasm) {
         const theme = PALETTE[folderIdx % PALETTE.length];
         const folderNum = String(folderIdx + 1).padStart(2, '0');
 
-        return group.map((ch, pageIdx) => ({
-            ...ch,
-            theme,
-            displayNum: `${folderNum}.${pageIdx + 1}`
-        }));
+        return group.map((ch, pageIdx) => {
+            // First page gets 'X', subsequent pages get 'X.Y'
+            const displayNum = pageIdx === 0 
+                ? folderNum 
+                : `${folderNum}.${pageIdx}`;
+
+            return {
+                ...ch,
+                theme,
+                displayNum
+            };
+        });
     });
 
     const listContainer = document.getElementById("exercise-list");

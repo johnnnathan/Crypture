@@ -1,5 +1,3 @@
-// chapter-engine.js
-
 import {
   parseBinaryByte, parseHexByte, parseIntLoose, parseTextExact,
   showFeedback, clearFeedback,
@@ -365,28 +363,10 @@ export function buildChapterScreen(chapter, kit) {
   return screen;
 }
 
+// ── Initialization & Accordion System ─────────────────────────────────────
+
 export function initChapterSystem({ chapters, listContainer, screenRoot, showScreen, kit = {} }) {
   const built = new Map();
-
-  listContainer.innerHTML = chapters.map((ch, idx) => {
-    // Fallback to global index if displayNum isn't explicitly set
-    const dynamicNum = ch.displayNum || String(idx + 1).padStart(2, '0');
-    const theme = getTheme(ch);
-    const inlineStyles = `style="--card-color: ${theme.color}; --card-glow: ${theme.glow};"`;
-
-    return `
-      <div class="ex-list-card" data-chapter-id="${ch.id}" ${inlineStyles}>
-        <div class="ex-card-num">${dynamicNum}</div>
-        <div class="ex-card-color"></div>
-        <div class="ex-card-body">
-          <div class="ex-card-tag">${esc(ch.tag || '')}</div>
-          <div class="ex-card-title">${esc(ch.title)}</div>
-          <div class="ex-card-desc">${esc(ch.desc)}</div>
-          <div class="ex-card-concepts">${(ch.concepts || []).map(c => `<span>${esc(c)}</span>`).join('')}</div>
-        </div>
-        <div class="ex-card-arrow">→</div>
-      </div>`;
-  }).join('');
 
   function openChapter(id) {
     const chapter = chapters.find(c => c.id === id);
@@ -399,10 +379,84 @@ export function initChapterSystem({ chapters, listContainer, screenRoot, showScr
     showScreen(`screen-ch-${id}`);
   }
 
-  listContainer.querySelectorAll('.ex-list-card').forEach(card => {
-    card.addEventListener('click', () => openChapter(card.dataset.chapterId));
+  // 1. Group chapters by folder prefix (e.g., "01", "02")
+  const folderGroups = {};
+  chapters.forEach((ch, idx) => {
+    const displayNum = ch.displayNum || String(idx + 1).padStart(2, '0');
+    const folderKey = displayNum.includes('.') ? displayNum.split('.')[0] : displayNum;
+
+    if (!folderGroups[folderKey]) {
+      folderGroups[folderKey] = [];
+    }
+    folderGroups[folderKey].push({ ...ch, displayNum });
   });
 
+  // 2. Render Accordion Items
+  listContainer.innerHTML = '';
+  
+  Object.keys(folderGroups).forEach(folderKey => {
+    const group = folderGroups[folderKey];
+    const firstChapter = group[0];
+    const theme = getTheme(firstChapter);
+    const inlineStyles = `style="--card-color: ${theme.color}; --card-glow: ${theme.glow};"`;
+
+    const groupEl = el(`
+      <div class="ex-list-card ex-folder-group" ${inlineStyles}>
+        <div class="ex-card-main folder-header" data-folder="${folderKey}">
+          <div class="ex-card-num">${firstChapter.displayNum}</div>
+          <div class="ex-card-color"></div>
+          <div class="ex-card-body">
+            <div class="ex-card-tag">${esc(firstChapter.tag || '')}</div>
+            <div class="ex-card-title">${esc(firstChapter.title)}</div>
+            <div class="ex-card-desc">${esc(firstChapter.desc)}</div>
+            <div class="ex-card-concepts">${(firstChapter.concepts || []).map(c => `<span>${esc(c)}</span>`).join('')}</div>
+          </div>
+          <div class="ex-card-arrow folder-chevron">▼</div>
+        </div>
+        <div class="folder-dropdown" style="display: none;">
+          ${group.map(ch => `
+            <div class="folder-item" data-chapter-id="${ch.id}">
+              <span class="item-num">${ch.displayNum}</span>
+              <span class="item-title">${esc(ch.title)}</span>
+              <div class="item-arrow">→</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `);
+
+    // 3. Header Click Event: Accordion Toggle
+    const header = groupEl.querySelector('.folder-header');
+    header.addEventListener('click', () => {
+      const isAlreadyOpen = groupEl.classList.contains('open');
+
+      // Collapse all other expanded accordion groups
+      listContainer.querySelectorAll('.ex-folder-group').forEach(otherGroup => {
+        otherGroup.classList.remove('open');
+        const dropdown = otherGroup.querySelector('.folder-dropdown');
+        if (dropdown) dropdown.style.display = 'none';
+      });
+
+      // Expand clicked group if it wasn't already open
+      if (!isAlreadyOpen) {
+        groupEl.classList.add('open');
+        groupEl.querySelector('.folder-dropdown').style.display = 'block';
+      }
+    });
+
+    // 4. Sub-item Click Event: Direct Navigation
+    groupEl.querySelectorAll('.folder-item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevents parent folder collapse on sub-item click
+        const chapterId = item.getAttribute('data-chapter-id');
+        openChapter(chapterId);
+      });
+    });
+
+    listContainer.appendChild(groupEl);
+  });
+
+  // Global Back Navigation
   screenRoot.addEventListener('click', (e) => {
     const back = e.target.closest('[data-nav="exercises"]');
     if (back) showScreen('screen-exercises');
