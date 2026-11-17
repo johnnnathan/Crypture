@@ -62,8 +62,8 @@ export const eccPractice = {
   tagClass: 'ecc',
   category: 'Practice',
   title: 'ECC — Point Math Drills',
-  desc: 'Practice point doubling, point decompression, and ECDH key exchange over small finite fields.',
-  concepts: ['Point Doubling', 'Point Decompression', 'ECDH Key Agreement'],
+  desc: 'Practice point doubling, point decompression, ECDH key exchange, and Pollard’s Rho discrete logarithm recovery over small finite fields.',
+  concepts: ['Point Doubling', 'Point Decompression', 'ECDH Key Agreement', 'Pollard’s Rho'],
   topbarTitle: 'Exercise 03.2 — ECC Practice',
 
   blocks: [
@@ -73,7 +73,7 @@ export const eccPractice = {
       title: 'Finite Field Arithmetic Drills',
       html: `
         <p class="ex-p">
-          Practice evaluating point operations, point decompression, and ECDH secrets using curve $y^2 = x^3 + 5x + 4 \\pmod{13}$.
+          Practice evaluating point operations, point decompression, ECDH secrets, and cycle-based discrete logarithm attacks using curve $y^2 = x^3 + 5x + 4 \\pmod{13}$.
         </p>`
     },
     {
@@ -90,7 +90,6 @@ export const eccPractice = {
           inputLabel: '[2]G x-coord =',
           generateData: () => {
             const p = 13, a = 5, b = 4;
-            // Point G = (2, 3)
             const G = { x: 2, y: 3 };
 
             const num = (3 * G.x * G.x + a) % p;
@@ -126,8 +125,8 @@ export const eccPractice = {
           inputLabel: 'y =',
           generateData: () => {
             const p = 13, a = 5, b = 4;
-            const x = 6; // y^2 = 216 + 30 + 4 = 250 = 3 mod 13 -> y = 4 (even) or 9 (odd)
-            const parity = 0; // Even parity requested
+            const x = 6; 
+            const parity = 0; 
             const expectedY = 4;
 
             return {
@@ -155,7 +154,7 @@ export const eccPractice = {
           hint: 'The shared secret point is P = [a]B = [3](6, 4). Extract the x-coordinate.',
           inputLabel: 'Shared Secret x =',
           generateData: () => {
-            const expectedSecretX = 8; // [3](6,4) = (8,6) -> x = 8
+            const expectedSecretX = 8; 
 
             return {
               bodyHtml: `
@@ -169,6 +168,35 @@ export const eccPractice = {
               check: (val) => parseInt(val, 10) === expectedSecretX
                 ? { correct: true, message: `Key Agreed! [3]B = (8, 6), so the shared secret x-coordinate is 8.` }
                 : { correct: false, message: `Incorrect. Compute [2]B = (11, 5), then B + [2]B = (8, 6).` }
+            };
+          }
+        }),
+
+        /* -----------------------------------------------------------------
+         * Drill 4: Pollard's Rho ECDLP Key Recovery
+         * ----------------------------------------------------------------- */
+        createDynamicExercise({
+          num: 'P3.4',
+          title: 'Pollard’s Rho Collision & Key Recovery',
+          hint: 'Track the random walk steps and use the collision relation (a₁ - a₂)P + (b₁ - b₂)Q = 0 to solve for k.',
+          inputLabel: 'Private Key k =',
+          generateData: () => {
+            const targetK = 7; // [7](2, 3) = (10, 2) on y^2 = x^3 + 5x + 4 mod 13
+
+            return {
+              bodyHtml: `
+                <div class="ex-ex-body-content">
+                  <p class="ex-p">Given base point <code>G = (2, 3)</code> and public key <code>Q = [7]G = (10, 2)</code> on curve <code>y² = x³ + 5x + 4 mod 13</code> (group order n = 12), perform a Pollard's Rho cycle search to recover private key <code>k</code>:</p>
+                  <div class="ex-data-block">
+                    <div class="ex-data-row"><span>Curve</span><span class="mono">y² = x³ + 5x + 4 mod 13</span></div>
+                    <div class="ex-data-row"><span>Generator G</span><span class="mono">(2, 3)</span></div>
+                    <div class="ex-data-row"><span>Public Key Q</span><span class="accent">(10, 2)</span></div>
+                    <div class="ex-data-row"><span>Group Order (n)</span><span class="accent">12</span></div>
+                  </div>
+                </div>`,
+              check: (val) => parseInt(val, 10) === targetK
+                ? { correct: true, message: `Correct! k = 7 successfully recovered via collision search.` }
+                : { correct: false, message: `Incorrect. Hint: Use Floyd's cycle-finding algorithm to find a collision where a₁P + b₁Q ≡ a₂P + b₂Q mod 12.` }
             };
           }
         })
