@@ -3,6 +3,7 @@ import { aesPractice } from './practice.js'
 import { aesBitflipCtf } from './ctf.js'
 import { aesPaddingOracleCtf } from './ctf2.js'
 import { aesIvKeyCtf } from './ctf3.js'
+import { aesMaccelijkLab } from './ctf4.js'
 
 export default [
     aesTheory,
@@ -10,5 +11,6 @@ export default [
     aesBitflipCtf,
     aesPaddingOracleCtf,
     aesIvKeyCtf,
+    aesMaccelijkLab,
 ];
 
