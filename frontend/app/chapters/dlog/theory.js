@@ -1,15 +1,20 @@
 import { p } from '../../chapter-engine.js';
 
-export const dlogBsgsTheoryChapter = {
-  id: 'dlog-bsgs-theory',
+export const dlogCryptanalysisTheoryChapter = {
+  id: 'dlog-cryptanalysis-theory',
   num: '08',
   tag: 'Asymmetric Crypto',
   tagClass: 'dlog',
   category: 'Theory',
-  title: 'Discrete Logarithm Problem & Baby-Step Giant-Step',
-  desc: 'Understand cyclic groups, the hardness of the Discrete Logarithm Problem (DLP), and how Baby-Step Giant-Step trades memory for a square-root speedup.',
-  concepts: ['Cyclic Groups', 'DLP', 'Baby-Step Giant-Step', 'Time–Memory Tradeoff'],
-  topbarTitle: 'Chapter 08 — DLP & Baby-Step Giant-Step',
+  title: 'Discrete Logarithm Problem & Cryptanalysis Algorithms',
+  desc: 'Explore the Discrete Logarithm Problem (DLP), Baby-Step Giant-Step time–memory tradeoffs, Pohlig–Hellman subgroup decomposition via CRT, and Index Calculus over finite fields.',
+  concepts: [
+    'Cyclic Groups & DLP',
+    'Baby-Step Giant-Step',
+    'Pohlig–Hellman & CRT',
+    'Index Calculus'
+  ],
+  topbarTitle: 'Chapter 08 — DLOG & Cryptanalysis Theory',
 
   blocks: [
     // ── Block 0: DLP Theory ────────────────────────────────────────────────
@@ -18,31 +23,29 @@ export const dlogBsgsTheoryChapter = {
       heading: 'h2',
       title: '1. The Discrete Logarithm Problem (DLP)',
       html: `
-        ${p('Let $\\mathbb{G}$ be a finite cyclic group of order $n$ written multiplicatively, with generator $g \\in \\mathbb{G}$. Given a target element $h \\in \\mathbb{G}$, the <strong>Discrete Logarithm Problem</strong> asks for an integer $x \\in \\{0, 1, \\dots, n-1\\}$ such that:')}
+        ${p('Let $\\mathbb{G}$ be a finite cyclic group of order $n$ with generator $g \\in \\mathbb{G}$. Given a target element $h \\in \\mathbb{G}$, the <strong>Discrete Logarithm Problem</strong> asks for an integer $x \\in \\{0, 1, \\dots, n-1\\}$ such that:')}
         <div class="ex-data-block">
           <div class="ex-data-row"><span>Group Equation</span><span class="accent">gˣ ≡ h (mod n / in G)</span></div>
           <div class="ex-data-row"><span>Notation</span><span class="mono">x = log_g(h)</span></div>
         </div>
-        ${p('In elliptic curve notation (additive group $\\mathbb{E}(\\mathbb{F}_p)$ with base point $P$ and public key $Q$), this corresponds to finding scalar $k$ such that $Q = [k]P$.')}
-        ${p('While computing $g^x$ via <em>square-and-multiply</em> takes only $O(\\log x)$ operations, reversing the process to recover $x$ from $h$ appears computationally hard for suitably chosen groups—forming the backbone of Diffie–Hellman, ElGamal, DSA, and ECC.')}
+        ${p('In additive elliptic curve notation $\\mathbb{E}(\\mathbb{F}_p)$ with base point $P$ and public key $Q$, this corresponds to finding scalar $k$ such that $Q = [k]P$. While forward exponentiation or scalar multiplication is efficient, inverting it drives key sizes in Diffie–Hellman, ElGamal, DSA, and ECC.')}
       `
     },
 
-    // ── Block 1: Brute Force vs BSGS ───────────────────────────────────────
+    // ── Block 1: BSGS Theory ───────────────────────────────────────────────
     {
       kind: 'text',
       heading: 'h2',
       title: '2. Baby-Step Giant-Step (BSGS) Algorithm',
       html: `
-        ${p('A naive brute-force search tests $x = 0, 1, 2, \\dots$ until $g^x = h$, taking up to $O(n)$ steps. <strong>Shanks’ Baby-Step Giant-Step</strong> algorithm improves this to $O(\\sqrt{n})$ time by storing $O(\\sqrt{n})$ group elements in a lookup table.')}
-        ${p('Choose a step parameter $m \\ge \\lceil\\sqrt{n}\\rceil$ and write any exponent $x$ in base $m$ as:')}
+        ${p('Naive brute force checks up to $O(n)$ candidates. <strong>Shanks’ Baby-Step Giant-Step</strong> algorithm lowers time complexity to $O(\\sqrt{n})$ by storing $O(\\sqrt{n})$ entries in a lookup table with step bound $m \\ge \\lceil\\sqrt{n}\\rceil$.')}
         <div class="ex-data-block">
-          <div class="ex-data-row"><span>Decomposition</span><span class="accent">x = i·m + j</span></div>
+          <div class="ex-data-row"><span>Index Decomposition</span><span class="accent">x = i·m + j</span></div>
           <div class="ex-data-row"><span>Index Bounds</span><span class="mono">0 ≤ j &lt; m, &nbsp; 0 ≤ i ≤ ⌊n/m⌋</span></div>
-          <div class="ex-data-row"><span>Rearranged</span><span class="accent">g^(i·m + j) = h  ⇔  g^j = h · (g⁻¹)^(i·m)</span></div>
+          <div class="ex-data-row"><span>Collision Equation</span><span class="accent">g^j = h · (g⁻¹)^(i·m)</span></div>
         </div>
-        ${p('<strong>Baby Steps:</strong> Compute $g^j$ for $j = 0, 1, \\dots, m-1$ and store pairs $(g^j, j)$ in a hash/lookup table.')}
-        ${p('<strong>Giant Steps:</strong> Compute giant-step multiplier $u = (g^{-1})^m$ (or $g^{-m}$), set $cur = h$, and for $i = 0, 1, \\dots, \\lfloor n/m \\rfloor$ check if $cur$ is in the baby-step table. If $cur = g^j$, return $x = i \\cdot m + j$.')}
+        ${p('<strong>Baby Steps:</strong> Precompute $g^j$ for $0 \\le j < m$ and store $(g^j, j)$.')}
+        ${p('<strong>Giant Steps:</strong> Compute multiplier $u = (g^{-1})^m$, initialize $cur = h$, and step $cur \\leftarrow cur \\cdot u$ for $i = 0, 1, \\dots, \\lfloor n/m \\rfloor$ until $cur$ matches a stored baby step $g^j$, returning $x = i \\cdot m + j$.')}
       `
     },
 
@@ -50,7 +53,7 @@ export const dlogBsgsTheoryChapter = {
     {
       kind: 'custom',
       title: '3. Interactive BSGS Time–Memory & Step Calculator',
-      desc: 'Tune the group order n and baby-step table size m to inspect baby steps, giant steps, total worst-case operations, and memory usage.',
+      desc: 'Adjust the group order n and baby-step table size m to observe baby steps, giant steps, total worst-case operations, and estimated memory.',
       html: `
         <div class="ex-exercise" id="bsgs-calc-card">
           <div class="ex-ex-body">
@@ -117,7 +120,6 @@ export const dlogBsgsTheoryChapter = {
           const n = Math.max(2, Math.floor(Number(nInput.value) || 2));
           const ceilSqrt = Math.ceil(Math.sqrt(n));
 
-          // Keep slider range responsive to n
           const sliderMax = Math.max(100, Math.min(ceilSqrt * 2, 100000));
           mSlider.max = String(sliderMax);
 
@@ -181,8 +183,38 @@ export const dlogBsgsTheoryChapter = {
 
         updateCalc('m');
       }
+    },
+
+    // ── Block 3: Pohlig–Hellman Theory ─────────────────────────────────────
+    {
+      kind: 'text',
+      heading: 'h2',
+      title: '4. Pohlig–Hellman Algorithm (Composite Group Orders)',
+      html: `
+        ${p('When a cyclic group order factors into prime powers $n = \\prod_{i=1}^{r} q_i^{e_i}$, <strong>Pohlig–Hellman</strong> decomposes the discrete logarithm modulo $n$ into smaller prime-power congruences $x \\equiv x_i \\pmod{q_i^{e_i}}$ and recombines them via the <strong>Chinese Remainder Theorem (CRT)</strong>.')}
+        <div class="ex-data-block">
+          <div class="ex-data-row"><span>Order Factorization</span><span class="accent">n = Π qᵢ^eᵢ</span></div>
+          <div class="ex-data-row"><span>Subgroup Congruences</span><span class="mono">x ≡ xᵢ (mod qᵢ^eᵢ)</span></div>
+        </div>
+        ${p('Because runtime is governed by the largest prime factor rather than $n$ itself, groups with smooth orders are vulnerable—which is why cryptographic curves choose prime orders.')}
+      `
+    },
+
+    // ── Block 4: Index Calculus Theory ─────────────────────────────────────
+    {
+      kind: 'text',
+      heading: 'h2',
+      title: '5. Index Calculus Method (Finite-Field Multiplicative Groups)',
+      html: `
+        ${p('<strong>Index Calculus</strong> targets multiplicative groups $\\mathbb{F}_p^\\times$ by selecting a factor base $\\mathcal{B} = \\{p_1, p_2, \\dots, p_k\\}$ of small primes, collecting smooth relations where $g^s \\bmod p$ factors completely over $\\mathcal{B}$, solving linear congruences for $\\log_g(p_j)$, and reducing $h \\cdot g^r \\bmod p$ over $\\mathcal{B}$.')}
+        <div class="ex-data-block">
+          <div class="ex-data-row"><span>Smooth Relation</span><span class="accent">g^s ≡ Π pⱼ^eⱼ (mod p)</span></div>
+          <div class="ex-data-row"><span>Linear Equation</span><span class="mono">s ≡ Σ eⱼ·log_g(pⱼ) (mod φ(p))</span></div>
+        </div>
+        ${p('Because integer smoothness relies on factoring lifted integers in $\\mathbb{Z}$, Index Calculus applies to finite-field multiplicative groups rather than elliptic curve groups.')}
+      `
     }
   ]
 };
 
-export default dlogBsgsTheoryChapter;
+export default dlogCryptanalysisTheoryChapter;

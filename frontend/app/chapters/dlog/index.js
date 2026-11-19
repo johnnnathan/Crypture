@@ -1,7 +1,8 @@
-import { dlogBsgsTheoryChapter} from './theory.js';
-import { dlogBsgsPracticeChapter} from './practice.js'
+import { dlogCryptanalysisTheoryChapter } from './theory.js';
+import { dlogCryptanalysisPracticeChapter } from './practice.js'
 
 export default [
-    dlogBsgsTheoryChapter,
-    dlogBsgsPracticeChapter,
+    dlogCryptanalysisTheoryChapter,
+    dlogCryptanalysisPracticeChapter,
+    
 ];

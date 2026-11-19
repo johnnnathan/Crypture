@@ -71,22 +71,28 @@ function createDynamicExercise({ num, title, generateData, hint, inputLabel }) {
   };
 }
 
-export const dlogBsgsPracticeChapter = {
-  id: 'dlog-bsgs-practice',
+export const dlogCryptanalysisPracticeChapter = {
+  id: 'dlog-cryptanalysis-practice',
   num: '08.1',
   tag: 'Asymmetric Crypto',
   tagClass: 'dlog',
   category: 'Practice',
-  title: 'DLP & BSGS — Step & Logarithm Drills',
-  desc: 'Practice choosing BSGS step sizes, computing giant-step multipliers, and solving small discrete logarithm instances.',
-  concepts: ['BSGS Step Bound', 'Giant-Step Multiplier', 'Discrete Logarithm', 'Modular Inverse'],
-  topbarTitle: 'Exercise 08.1 — DLP & BSGS Drills',
+  title: 'DLOG Cryptanalysis — BSGS, Pohlig–Hellman & Index Calculus Drills',
+  desc: 'Practice BSGS step bounds, giant-step multipliers, discrete logarithm recovery, Pohlig–Hellman CRT recombination, and Index Calculus relations.',
+  concepts: [
+    'BSGS Step Bound',
+    'Giant-Step Multiplier',
+    'Discrete Logarithm',
+    'Pohlig–Hellman & CRT',
+    'Index Calculus'
+  ],
+  topbarTitle: 'Exercise 08.1 — DLOG Cryptanalysis Drills',
 
   blocks: [
     {
       kind: 'text',
       heading: 'h2',
-      title: 'Baby-Step Giant-Step & Discrete Log Drills',
+      title: 'Discrete Logarithm & Cryptanalysis Drills',
       html: p('Work through each drill using randomized parameters. Click <strong>Re-roll</strong> on any card to generate a fresh instance.')
     },
     {
@@ -98,7 +104,7 @@ export const dlogBsgsPracticeChapter = {
          * ----------------------------------------------------------------- */
         createDynamicExercise({
           num: 'P8.1',
-          title: 'Choosing the Step Bound m',
+          title: 'BSGS: Choosing the Step Bound m',
           hint: 'Compute m = ⌈√n⌉ (the smallest integer m such that m² ≥ n).',
           inputLabel: 'm =',
           generateData: () => {
@@ -127,7 +133,7 @@ export const dlogBsgsPracticeChapter = {
          * ----------------------------------------------------------------- */
         createDynamicExercise({
           num: 'P8.2',
-          title: 'Giant-Step Multiplier g⁻ᵐ mod p',
+          title: 'BSGS: Giant-Step Multiplier g⁻ᵐ mod p',
           hint: 'First compute g^m mod p, then find its modular inverse modulo p using the Extended Euclidean Algorithm.',
           inputLabel: 'g⁻ᵐ mod p =',
           generateData: () => {
@@ -164,7 +170,7 @@ export const dlogBsgsPracticeChapter = {
          * ----------------------------------------------------------------- */
         createDynamicExercise({
           num: 'P8.3',
-          title: 'Recover Discrete Logarithm x',
+          title: 'BSGS: Recover Discrete Logarithm x',
           hint: 'Use x = i·m + j with m = ⌈√n⌉: build baby steps g^j mod p for j < m, then step h · (g⁻ᵐ)^i mod p.',
           inputLabel: 'x =',
           generateData: () => {
@@ -194,10 +200,78 @@ export const dlogBsgsPracticeChapter = {
                 : { correct: false, message: `Incorrect. Check candidate exponents x such that ${item.g}^x mod ${item.p} = ${h}.` }
             };
           }
+        }),
+
+        /* -----------------------------------------------------------------
+         * Drill 4: Pohlig–Hellman CRT Recombination
+         * ----------------------------------------------------------------- */
+        createDynamicExercise({
+          num: 'P8.4',
+          title: 'Pohlig–Hellman: CRT Reconstruction',
+          hint: 'Find x in [0, m1*m2 - 1] satisfying both x ≡ r1 (mod m1) and x ≡ r2 (mod m2).',
+          inputLabel: 'x =',
+          generateData: () => {
+            const systems = [
+              { m1: 3, r1: 2, m2: 5, r2: 4, x: 14 },
+              { m1: 4, r1: 1, m2: 3, r2: 2, x: 5 },
+              { m1: 3, r1: 1, m2: 7, r2: 3, x: 10 },
+              { m1: 5, r1: 3, m2: 7, r2: 5, x: 33 }
+            ];
+            const sys = systems[Math.floor(Math.random() * systems.length)];
+            const modTotal = sys.m1 * sys.m2;
+
+            return {
+              bodyHtml: `
+                <div class="ex-ex-body-content">
+                  <p class="ex-p">Recombine subgroup congruences from Pohlig–Hellman to find <code>x ∈ {0, …, ${modTotal - 1}}</code> via the Chinese Remainder Theorem:</p>
+                  <div class="ex-data-block">
+                    <div class="ex-data-row"><span>Congruence 1</span><span class="accent">x ≡ ${sys.r1} (mod ${sys.m1})</span></div>
+                    <div class="ex-data-row"><span>Congruence 2</span><span class="accent">x ≡ ${sys.r2} (mod ${sys.m2})</span></div>
+                    <div class="ex-data-row"><span>Combined Modulus</span><span class="mono">n = ${modTotal}</span></div>
+                  </div>
+                </div>`,
+              check: (val) => parseInt(val, 10) === sys.x
+                ? { correct: true, message: `Correct! x = ${sys.x} satisfies both congruences modulo ${modTotal}.` }
+                : { correct: false, message: `Incorrect. Find x in 0..${modTotal - 1} such that x ≡ ${sys.r1} (mod ${sys.m1}) and x ≡ ${sys.r2} (mod ${sys.m2}).` }
+            };
+          }
+        }),
+
+        /* -----------------------------------------------------------------
+         * Drill 5: Index Calculus Factor Base Relation
+         * ----------------------------------------------------------------- */
+        createDynamicExercise({
+          num: 'P8.5',
+          title: 'Index Calculus: Factor Base Smoothness',
+          hint: 'Factor the given number and count how many distinct primes from the factor base divide it.',
+          inputLabel: 'Distinct Primes =',
+          generateData: () => {
+            const cases = [
+              { val: 12, fb: [2, 3, 5], count: 2 },
+              { val: 30, fb: [2, 3, 5, 7], count: 3 },
+              { val: 18, fb: [2, 3, 5], count: 2 },
+              { val: 42, fb: [2, 3, 5, 7], count: 3 }
+            ];
+            const item = cases[Math.floor(Math.random() * cases.length)];
+
+            return {
+              bodyHtml: `
+                <div class="ex-ex-body-content">
+                  <p class="ex-p">Given factor base <code>B = {${item.fb.join(', ')}}</code>, the value <code>${item.val}</code> factors smoothly over <code>B</code>. How many <strong>distinct</strong> primes from <code>B</code> divide <code>${item.val}</code>?</p>
+                  <div class="ex-data-block">
+                    <div class="ex-data-row"><span>Smooth Residue</span><span class="accent">${item.val}</span></div>
+                    <div class="ex-data-row"><span>Factor Base B</span><span class="mono">{${item.fb.join(', ')}}</span></div>
+                  </div>
+                </div>`,
+              check: (val) => parseInt(val, 10) === item.count
+                ? { correct: true, message: `Correct! ${item.val} has ${item.count} distinct prime factors in B.` }
+                : { correct: false, message: `Incorrect. Check which primes in {${item.fb.join(', ')}} divide ${item.val}.` }
+            };
+          }
         })
       ]
     }
   ]
 };
 
-export default dlogBsgsPracticeChapter;
+export default dlogCryptanalysisPracticeChapter;
