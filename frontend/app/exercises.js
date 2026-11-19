@@ -9,6 +9,7 @@ import aesPages from "./chapters/aes/index.js";
 import hashPages from "./chapters/hash/index.js";
 import schnorrPages from "./chapters/schnorr/index.js";
 import eccPages from "./chapters/ecc/index.js";
+import dlogPages from "./chapters/dlog/index.js"
 import rsaPages from "./chapters/rsa/index.js";
 import testPages from "./chapters/test/index.js";
 
@@ -47,6 +48,7 @@ export function initExercises(CircuitWasm) {
         hashPages,
         schnorrPages, 
         eccPages,
+        dlogPages,
         rsaPages,
     ];
 

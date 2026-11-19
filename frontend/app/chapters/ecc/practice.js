@@ -170,36 +170,8 @@ export const eccPractice = {
                 : { correct: false, message: `Incorrect. Compute [2]B = (11, 5), then B + [2]B = (8, 6).` }
             };
           }
-        }),
-
-        /* -----------------------------------------------------------------
-         * Drill 4: Pollard's Rho ECDLP Key Recovery
-         * ----------------------------------------------------------------- */
-        createDynamicExercise({
-          num: 'P3.4',
-          title: 'Pollard’s Rho Collision & Key Recovery',
-          hint: 'Track the random walk steps and use the collision relation (a₁ - a₂)P + (b₁ - b₂)Q = 0 to solve for k.',
-          inputLabel: 'Private Key k =',
-          generateData: () => {
-            const targetK = 7; // [7](2, 3) = (10, 2) on y^2 = x^3 + 5x + 4 mod 13
-
-            return {
-              bodyHtml: `
-                <div class="ex-ex-body-content">
-                  <p class="ex-p">Given base point <code>G = (2, 3)</code> and public key <code>Q = [7]G = (10, 2)</code> on curve <code>y² = x³ + 5x + 4 mod 13</code> (group order n = 12), perform a Pollard's Rho cycle search to recover private key <code>k</code>:</p>
-                  <div class="ex-data-block">
-                    <div class="ex-data-row"><span>Curve</span><span class="mono">y² = x³ + 5x + 4 mod 13</span></div>
-                    <div class="ex-data-row"><span>Generator G</span><span class="mono">(2, 3)</span></div>
-                    <div class="ex-data-row"><span>Public Key Q</span><span class="accent">(10, 2)</span></div>
-                    <div class="ex-data-row"><span>Group Order (n)</span><span class="accent">12</span></div>
-                  </div>
-                </div>`,
-              check: (val) => parseInt(val, 10) === targetK
-                ? { correct: true, message: `Correct! k = 7 successfully recovered via collision search.` }
-                : { correct: false, message: `Incorrect. Hint: Use Floyd's cycle-finding algorithm to find a collision where a₁P + b₁Q ≡ a₂P + b₂Q mod 12.` }
-            };
-          }
         })
+
       ]
     }
   ]
