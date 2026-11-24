@@ -19,7 +19,8 @@ output_file = "challenges.json"
 
 if os.path.exists(challenges_dir):
     files = [f for f in os.listdir(challenges_dir) if f.endswith(".py") and not f.startswith("_")]
-    
+    print(f"Detected challenge files: {files}")  # Debugging output
+
     # Safely handle parent dir check only if a path exists
     parent_dir = os.path.dirname(output_file)
     if parent_dir:
