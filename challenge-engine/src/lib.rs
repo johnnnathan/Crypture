@@ -9,6 +9,7 @@ pub mod aes_iv_key;
 pub mod aes_padding_oracle;
 pub mod sha1_collision;
 pub mod h_sha1_materials;
+pub mod maccelijk;
 
 pub use traits::Challenge;
 use wasm_bindgen::prelude::*;

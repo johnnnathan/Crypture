@@ -1,7 +1,8 @@
 use serde::{Serialize, Deserialize};
 use wasm_bindgen::prelude::*;
 use sha2::{Sha256, Digest};
-use hmac::{Hmac, Mac, NewMac};
+use hmac::{Hmac, Mac};
+use crate::traits::{Challenge, ValidationResult};
 
 type HmacSha256 = Hmac<Sha256>;
 
@@ -10,6 +11,7 @@ pub struct ChallengeStruct {
     pub seed: u64,
     pub key: Vec<u8>,
     pub flag: String,
+    pub ciphertext: String,
 }
 
 impl ChallengeStruct {
@@ -17,7 +19,8 @@ impl ChallengeStruct {
     pub fn generate(seed: u64) -> Self {
         let key = Self::derive_key(seed);
         let flag = format!("FLAG{{maccelijk_{:08x}}}", seed);
-        Self { seed, key, flag }
+        let ciphertext = "example_ciphertext".to_string(); // Replace with actual ciphertext logic
+        Self { seed, key, flag, ciphertext }
     }
 
     /// Derive a deterministic key from the seed
@@ -42,15 +45,40 @@ impl ChallengeStruct {
     }
 }
 
-#[wasm_bindgen]
-pub fn generate_maccelijk_challenge(seed: u64) -> JsValue {
-    let instance = ChallengeStruct::generate(seed);
-    let payload = serde_json::json!({
-        "seed": instance.seed,
-        "flag": instance.flag,
-    });
-    serde_wasm_bindgen::to_value(&payload).unwrap()
+impl Challenge for ChallengeStruct {
+    fn generate(seed: u64) -> Self {
+        Self::generate(seed)
+    }
+
+    fn expected_answer(&self) -> String {
+        self.flag.clone()
+    }
+
+    fn check(&self, submission: &str) -> ValidationResult {
+        if submission.trim() == self.flag {
+            ValidationResult {
+                correct: true,
+                message: "Correct!".to_string(),
+            }
+        } else {
+            ValidationResult {
+                correct: false,
+                message: "Incorrect.".to_string(),
+            }
+        }
+    }
 }
+
+// #[wasm_bindgen]
+// pub fn generate_maccelijk_challenge(seed: u64) -> JsValue {
+//     let instance = ChallengeStruct::generate(seed);
+//     let payload = serde_json::json!({
+//         "seed": instance.seed,
+//         "flag": instance.flag,
+//         "ciphertext": instance.ciphertext,
+//     });
+//     serde_wasm_bindgen::to_value(&payload).unwrap()
+// }
 
 #[wasm_bindgen]
 pub fn compute_maccelijk_mac(seed: u64, message: &str) -> JsValue {
